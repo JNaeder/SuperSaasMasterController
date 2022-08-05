@@ -138,7 +138,6 @@ class GoogleSheets:
         return None
 
 
-
 class SuperSaasController:
     def __init__(self, student_holder, icr_cutoff):
         config = Configuration()
@@ -160,11 +159,9 @@ class SuperSaasController:
             supersaas_id = user.__getattribute__("id")
             self._student_holder.add_parameter_by_id(student_id, supersaas_id)
 
-
     def go_through_all_users(self):
         for user in self._all_users:
             ss_full_name = user.__getattribute__("full_name")
-            ss_student_id = user.__getattribute__("name").split(".")[0]
             supersaas_id_num = user.__getattribute__("id")
             ss_credits = user.__getattribute__('credit')
             student_object = self._student_holder.get_student_by_saas_id(supersaas_id_num)
@@ -201,13 +198,10 @@ class SuperSaasController:
 
     def go_through_all_bookings(self):
         for booking in self._all_bookings:
-            booked_room = booking.__getattribute__("res_name")
             student_name = booking.__getattribute__("full_name")
             mod = booking.__getattribute__("field_1_r")
             booking_id = booking.__getattribute__("id")
             student_supersaas_id = booking.__getattribute__("user_id")
-            booking_date = booking.__getattribute__("start")
-            student_id = booking.__getattribute__("created_by").split('.')[0]
             student_object = self._student_holder.get_student_by_saas_id(student_supersaas_id)
             if student_object is not None:
                 if student_object.get_full_name() != student_name:
