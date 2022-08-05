@@ -1,6 +1,30 @@
 from SuperSaaS import Client, Configuration
 import gspread
 import datetime
+import os
+
+
+
+class Logger:
+    def __init__(self):
+        self._user_logs = []
+        self._booking_logs = []
+        self._path = "/Users/johnnaeder/Desktop/SuperSaas Logs/"
+
+    def add_user_log(self, log):
+        self._user_logs.append(log)
+
+    def add_booking_log(self, log):
+        self._booking_logs.append(log)
+
+    def write_log(self):
+        date_and_time = datetime.datetime.now()
+        file_name = date_and_time.strftime("%Y-%m-%d-%H-%M-%S") + "-log.txt"
+        file_path = os.path.join(self._path, file_name)
+        with open(file_path, "w") as the_file:
+            the_file.write("Date: " + date_and_time.strftime("%A %m/%d/%Y") + "\n")
+            the_file.write("Time: " + date_and_time.strftime("%H:%M:%S") + "\n")
+
 
 
 class StudentClass:
@@ -14,7 +38,7 @@ class StudentClass:
 
     def __repr__(self):
         output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod}" \
-                 f"saas_id: {self._saas_id} "
+                 f" saas_id: {self._saas_id} "
         return output
 
     def get_student_id(self):
@@ -208,8 +232,8 @@ class SuperSaasController:
                     print(f"Changed {student_object.get_full_name()}'s mod to the correct mod")
 
 
-sh = StudentObjectHolder()
-gs = GoogleSheets()
-ss = SuperSaasController(sh, gs, 80)
-ss.go_through_all_users()
-ss.go_through_all_bookings()
+# ss = SuperSaasController(StudentObjectHolder(), GoogleSheets(), 80)
+# ss.go_through_all_users()
+# ss.go_through_all_bookings()
+logger = Logger()
+logger.write_log()
