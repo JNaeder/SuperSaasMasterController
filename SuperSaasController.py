@@ -1,30 +1,6 @@
 from SuperSaaS import Client, Configuration
 import gspread
 import datetime
-import os
-
-
-
-class Logger:
-    def __init__(self):
-        self._user_logs = []
-        self._booking_logs = []
-        self._path = "/Users/johnnaeder/Desktop/SuperSaas Logs/"
-
-    def add_user_log(self, log):
-        self._user_logs.append(log)
-
-    def add_booking_log(self, log):
-        self._booking_logs.append(log)
-
-    def write_log(self):
-        date_and_time = datetime.datetime.now()
-        file_name = date_and_time.strftime("%Y-%m-%d-%H-%M-%S") + "-log.txt"
-        file_path = os.path.join(self._path, file_name)
-        with open(file_path, "w") as the_file:
-            the_file.write("Date: " + date_and_time.strftime("%A %m/%d/%Y") + "\n")
-            the_file.write("Time: " + date_and_time.strftime("%H:%M:%S") + "\n")
-
 
 
 class StudentClass:
@@ -93,22 +69,30 @@ class StudentObjectHolder:
 
 class GoogleSheets:
     def __init__(self):
+        # OAuth
         google_sheet = gspread.oauth()
+        # Spreadsheets
         main_spreadsheet = google_sheet.open_by_key('1yiElZvxpOt_iH9aDxsm_fOPs5BTTkff_ijZjwqgIsmU')
         other_stuff_spreadsheet = google_sheet.open_by_key('17IIW21BzwSirT5g53Un9oYEZUSB0CaRmS55f9ur8n94')
+        # Worksheets
         grads_sheet = other_stuff_spreadsheet.worksheet("Grads")
         preferred_name_sheet = other_stuff_spreadsheet.worksheet("Preferred Names")
+        self._log_book = other_stuff_spreadsheet.worksheet("Log Book")
         all_active_worksheet = main_spreadsheet.worksheet("All Active")
         icr_gpa_worksheet = main_spreadsheet.worksheet("Running GPA and ICR")
+        # ICR/GPA of Values
         self._students_ids = icr_gpa_worksheet.col_values(1)
         self._student_full_names = icr_gpa_worksheet.col_values(2)
         self._icrs = icr_gpa_worksheet.col_values(3)
         self._gpas = icr_gpa_worksheet.col_values(4)
+        # All Active Values
         self._all_active_names = all_active_worksheet.col_values(1)
         self._all_active_student_id = all_active_worksheet.col_values(2)
         self._all_active_mod = all_active_worksheet.col_values(3)
+        # Grads Values
         self._grads_student_ids = grads_sheet.col_values(2)
         self._grad_full_names = grads_sheet.col_values(1)
+        # Preferred Name Values
         self._preferred_name_real = preferred_name_sheet.col_values(1)
         self._preferred_name_preferred = preferred_name_sheet.col_values(2)
 
@@ -128,7 +112,6 @@ class GoogleSheets:
                     mod = "Mod " + self._all_active_mod[index][4]
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == full_name:
-                    # print(f"Changed {self._preferred_name_real[index]} to {self._preferred_name_preferred[index]}")
                     full_name = self._preferred_name_preferred[index]
             new_student = StudentClass(student_id, full_name, icr, gpa, mod)
             return new_student
@@ -144,6 +127,15 @@ class GoogleSheets:
             return new_student
 
         return None
+
+    def log_to_log_book(self, student_object, the_log):
+        student_name = student_object.get_full_name()
+        student_id = student_object.get_student_id()
+        the_datetime = datetime.datetime.now()
+        the_date = the_datetime.strftime("%m/%d/%Y")
+        the_time = the_datetime.strftime("%H:%M:%S")
+        log_list = [student_name, student_id, the_date, the_time, the_log]
+        self._log_book.append_row(log_list)
 
 
 class SuperSaasController:
@@ -183,30 +175,28 @@ class SuperSaasController:
                     new_attributes = {
                         "full_name": student_object.get_full_name()
                     }
-                    self.update_user(supersaas_id_num, new_attributes)
+                    self._client.users.update(supersaas_id_num, new_attributes)
+                    log = f"Updated {student_object.get_full_name()}'s name in SuperSaas"
+                    print(log)
+                    self._google_sheets.log_to_log_book(student_object, log)
 
                 if student_object.get_icr() < self._icr_cutoff:
                     if ss_credits != "0":
-                        print(f"{student_object.get_full_name()} is now below ICR CUTOFF")
+                        log = f"{student_object.get_full_name()} is now below ICR CUTOFF"
+                        print(log)
+                        self._google_sheets.log_to_log_book(student_object, log)
                         new_attributes = {
                             "credit": "0"
                         }
-                        self.update_user(supersaas_id_num, new_attributes)
+                        self._client.users.update(supersaas_id_num, new_attributes)
                 elif ss_credits != "-":
-                    print(f"{student_object.get_full_name()} is now above ICR CUTOFF")
+                    log = f"{student_object.get_full_name()} is now above ICR CUTOFF"
+                    print(log)
+                    self._google_sheets.log_to_log_book(student_object, log)
                     new_attributes = {
                         "credit": "-"
                     }
-                    self.update_user(supersaas_id_num, new_attributes)
-            # else:
-            #     print(f"{ss_full_name} is not an active student")
-
-    def update_user(self, supersaas_id, attributes):
-        self._client.users.update(supersaas_id, attributes)
-        if "full_name" in attributes:
-            print(f"Updated {attributes['full_name']}'s name in SuperSaas")
-        if "credit" in attributes:
-            print(f"Updated credits")
+                    self._client.users.update(supersaas_id_num, new_attributes)
 
     def go_through_all_bookings(self):
         for booking in self._all_bookings:
@@ -232,8 +222,6 @@ class SuperSaasController:
                     print(f"Changed {student_object.get_full_name()}'s mod to the correct mod")
 
 
-# ss = SuperSaasController(StudentObjectHolder(), GoogleSheets(), 80)
-# ss.go_through_all_users()
-# ss.go_through_all_bookings()
-logger = Logger()
-logger.write_log()
+ss = SuperSaasController(StudentObjectHolder(), GoogleSheets(), 80)
+ss.go_through_all_users()
+ss.go_through_all_bookings()
