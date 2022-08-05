@@ -13,7 +13,8 @@ class StudentClass:
         self._saas_id = saas_id
 
     def __repr__(self):
-        output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod} saas_id: {self._saas_id}"
+        output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod}" \
+                 f"saas_id: {self._saas_id} "
         return output
 
     def get_student_id(self):
@@ -67,7 +68,7 @@ class StudentObjectHolder:
 
 
 class GoogleSheets:
-    def __init__(self, student_holder):
+    def __init__(self):
         google_sheet = gspread.oauth()
         main_spreadsheet = google_sheet.open_by_key('1yiElZvxpOt_iH9aDxsm_fOPs5BTTkff_ijZjwqgIsmU')
         other_stuff_spreadsheet = google_sheet.open_by_key('17IIW21BzwSirT5g53Un9oYEZUSB0CaRmS55f9ur8n94')
@@ -86,23 +87,6 @@ class GoogleSheets:
         self._grad_full_names = grads_sheet.col_values(1)
         self._preferred_name_real = preferred_name_sheet.col_values(1)
         self._preferred_name_preferred = preferred_name_sheet.col_values(2)
-        self._student_holder = student_holder
-
-        for the_id in self._students_ids:
-            new_student = self.get_student_object_from_id(the_id)
-            self._student_holder.add_student(new_student)
-        for the_id in self._grads_student_ids:
-            new_student = self.get_student_object_from_id(the_id)
-            self._student_holder.add_student(new_student)
-
-    def get_student_ids(self):
-        return self._students_ids
-
-    def get_student_icrs(self):
-        return self._icrs
-
-    def get_student_gpas(self):
-        return self._gpas
 
     def get_student_object_from_id(self, student_id):
         full_name = ""
@@ -120,7 +104,7 @@ class GoogleSheets:
                     mod = "Mod " + self._all_active_mod[index][4]
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == full_name:
-                    print(f"Changed {self._preferred_name_real[index]} to {self._preferred_name_preferred[index]}")
+                    # print(f"Changed {self._preferred_name_real[index]} to {self._preferred_name_preferred[index]}")
                     full_name = self._preferred_name_preferred[index]
             new_student = StudentClass(student_id, full_name, icr, gpa, mod)
             return new_student
@@ -139,7 +123,7 @@ class GoogleSheets:
 
 
 class SuperSaasController:
-    def __init__(self, student_holder, icr_cutoff):
+    def __init__(self, student_holder, google_sheets, icr_cutoff):
         config = Configuration()
         self._client = Client(config)
         self._client.account_name = "SAE_New_York"
@@ -151,13 +135,17 @@ class SuperSaasController:
         self._all_users = self._client.users.list(form=False, limit=500)
         self._icr_cutoff = icr_cutoff
         self._student_holder = student_holder
-        self.update_student_holder()
+        self._google_sheets = google_sheets
+        self.setup_student_holder()
 
-    def update_student_holder(self):
+    def setup_student_holder(self):
         for user in self._all_users:
             student_id = user.__getattribute__("name").split(".")[0]
             supersaas_id = user.__getattribute__("id")
-            self._student_holder.add_parameter_by_id(student_id, supersaas_id)
+            new_student = self._google_sheets.get_student_object_from_id(student_id)
+            if new_student is not None:
+                new_student.set_saas_id(supersaas_id)
+                self._student_holder.add_student(new_student)
 
     def go_through_all_users(self):
         for user in self._all_users:
@@ -186,8 +174,8 @@ class SuperSaasController:
                         "credit": "-"
                     }
                     self.update_user(supersaas_id_num, new_attributes)
-            else:
-                print(f"{ss_full_name} is not an active student")
+            # else:
+            #     print(f"{ss_full_name} is not an active student")
 
     def update_user(self, supersaas_id, attributes):
         self._client.users.update(supersaas_id, attributes)
@@ -221,7 +209,7 @@ class SuperSaasController:
 
 
 sh = StudentObjectHolder()
-gs = GoogleSheets(sh)
-ss = SuperSaasController(sh, 80)
+gs = GoogleSheets()
+ss = SuperSaasController(sh, gs, 80)
 ss.go_through_all_users()
 ss.go_through_all_bookings()
