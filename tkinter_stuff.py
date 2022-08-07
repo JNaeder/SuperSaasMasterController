@@ -2,7 +2,6 @@ import time
 import datetime
 import tkinter as tk
 from tkinter import ttk
-from PIL import Image, ImageTk
 from SuperSaasController import SuperSaasController
 import webbrowser
 
@@ -26,13 +25,15 @@ class App(tk.Tk):
         self.output_screen.columnconfigure(0, weight=1)
         buttons_frame = ButtonFrames(self)
         # Layouts
-        title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=10, padx=10)
-        title_frame.columnconfigure(0, weight=1)
-        title_frame.rowconfigure(0, weight=1)
+        # title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=10, padx=10)
+        # title_frame.columnconfigure(0, weight=1)
+        # title_frame.rowconfigure(0, weight=1)
         self.output_screen.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
         buttons_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
         buttons_frame.columnconfigure(0, weight=1)
         buttons_frame.columnconfigure(1, weight=1)
+
+        self.print_output("Welcome to SAE NYC Booking Manager.")
 
     def print_output(self, output_text):
         self.output_screen.print_output(output_text)
@@ -44,8 +45,7 @@ class TitleFrame(ttk.Frame):
 
         # Widgets
         title = ttk.Label(self,
-                          text="SAE NYC Booking Manager",
-                          background=container.background_color,
+                          text="SAE NYC Booking Manager", background="black",
                           foreground="white",
                           font=("Arial", 15)
                           )
@@ -57,7 +57,8 @@ class TitleFrame(ttk.Frame):
 class OutputScreen(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
-        self.screen = tk.Text(self, height=8, background="grey", state="disabled")
+        self.screen = tk.Text(self, height=20, width=100, background=container.background_color, state="disabled",
+                              font=("Arial", 15), foreground="white", wrap="word")
         self.screen.grid(sticky="ew")
 
     def print_output(self, output_text):
@@ -86,7 +87,7 @@ class ButtonFrames(ttk.Frame):
         get_number_of_bookings_button.grid(row=1, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         go_through_bookings_button.grid(row=1, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         get_info_button.grid(row=2, column=0, columnspan=2, sticky="ew")
-        open_web_pages_button.grid(row=3, column=0, columnspan=2, sticky="ew")
+        open_web_pages_button.grid(row=3, column=0, columnspan=2)
 
         for button in self.winfo_children():
             self.set_button_states(button)
@@ -100,22 +101,30 @@ class ButtonFrames(ttk.Frame):
             button['state'] = "normal"
 
     def get_number_of_users(self):
+        start_time = time.perf_counter()
         user_num = self.controller.supersaas_controller.get_number_of_current_users()
-        self.controller.print_output(f"There are {str(user_num)} current Users.")
+        end_time = time.perf_counter() - start_time
+        self.controller.print_output(f"There are {str(user_num)} current Users. - {end_time:.2f} seconds")
 
     def go_through_all_users(self):
+        start_time = time.perf_counter()
         self.controller.supersaas_controller.go_through_all_users()
+        end_time = time.perf_counter() - start_time
         num_changes = self.controller.supersaas_controller.get_number_of_changes()
-        self.controller.print_output(f"Done Processing Users - {num_changes} changes.")
+        self.controller.print_output(f"Done Processing Users - {num_changes} changes. - {end_time:.2f} seconds")
 
     def get_number_of_bookings(self):
+        start_time = time.perf_counter()
         booking_num = self.controller.supersaas_controller.get_number_of_current_bookings()
-        self.controller.print_output(f"There are {booking_num} current bookings.")
+        end_time = time.perf_counter() - start_time
+        self.controller.print_output(f"There are {booking_num} current bookings. - {end_time:.2f} seconds")
 
     def go_through_all_bookings(self):
+        start_time = time.perf_counter()
         self.controller.supersaas_controller.go_through_all_bookings()
+        end_time = time.perf_counter() - start_time
         num_changes = self.controller.supersaas_controller.get_number_of_changes()
-        self.controller.print_output(f"Done Sorting Bookings - {num_changes} changes.")
+        self.controller.print_output(f"Done Sorting Bookings - {num_changes} changes. - {end_time:.2f} seconds")
 
     def get_all_info(self):
         start_time = time.perf_counter()
@@ -132,5 +141,7 @@ class ButtonFrames(ttk.Frame):
         self.controller.print_output("Web pages open")
 
 
-app = App(SuperSaasController())
+sscontrol = SuperSaasController()
+app = App(sscontrol)
+sscontrol.set_app(app)
 app.mainloop()

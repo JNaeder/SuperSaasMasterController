@@ -164,6 +164,7 @@ class GoogleSheets:
 
 class SuperSaasController:
     def __init__(self):
+        self._app = None
         config = Configuration()
         self._client = Client(config)
         self._client.account_name = "SAE_New_York"
@@ -175,6 +176,9 @@ class SuperSaasController:
         self._student_holder = StudentObjectHolder()
         self._google_sheets = GoogleSheets()
         self._number_of_changes = 0
+
+    def set_app(self, app):
+        self._app = app
 
     def info_is_there(self):
         if self._google_sheets.info_is_there() and self._all_users is not None:
@@ -241,6 +245,18 @@ class SuperSaasController:
             ss_full_name = user.__getattribute__("full_name")
             supersaas_id_num = user.__getattribute__("id")
             ss_credits = user.__getattribute__('credit')
+            role = user.__getattribute__('role')
+            email_ending = user.__getattribute__("name").split("@")[1]
+            if email_ending == "sae.edu" and role != 4:
+                new_attributes = {
+                    "role": 4,
+                    "credit": "-"
+                }
+                self._client.users.update(supersaas_id_num, new_attributes)
+                log = f"Changed {ss_full_name}'s role to Superuser"
+                self.increase_number_of_changes()
+                self._app.print_output(log)
+
             student_object = self._student_holder.get_student_by_saas_id(supersaas_id_num)
             # print(student_object)
             if student_object is not None:
@@ -249,22 +265,25 @@ class SuperSaasController:
                         "full_name": student_object.get_full_name()
                     }
                     self._client.users.update(supersaas_id_num, new_attributes)
-                    log = f"Updated NAME in Student Management. (OLD NAME: {ss_full_name})"
+                    log = f"{student_object.get_full_name()}'s name has been updated in Student Management. (OLD NAME: {ss_full_name})"
                     self.increase_number_of_changes()
+                    self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
 
                 if student_object.get_icr() < self._icr_cutoff:
                     if ss_credits != "0":
-                        log = f"Is now below ICR cutoff. Credits have been set to 0"
+                        log = f"{student_object.get_full_name()} is now below the {self._icr_cutoff}% ICR cutoff. Credits have been set to 0"
                         self.increase_number_of_changes()
+                        self._app.print_output(log)
                         self._google_sheets.log_to_log_book(student_object, log)
                         new_attributes = {
                             "credit": "0"
                         }
                         self._client.users.update(supersaas_id_num, new_attributes)
                 elif ss_credits != "-":
-                    log = f"Is now above ICR cutoff. Credits have been set to infinity"
+                    log = f"{student_object.get_full_name()} is now above the {self._icr_cutoff}% ICR cutoff. Credits have been set to infinity"
                     self.increase_number_of_changes()
+                    self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
                     new_attributes = {
                         "credit": "-"
@@ -292,8 +311,9 @@ class SuperSaasController:
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
                     booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                    log = f"Updated NAME on {booked_room} booking for {booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name})"
+                    log = f"{student_object.get_full_name()}'s name has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name}) "
                     self.increase_number_of_changes()
+                    self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
 
                 # Runs when the mod of the booking doesn't match the mod in the system
@@ -304,8 +324,9 @@ class SuperSaasController:
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
                     booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                    log = f"Updated MOD on {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
+                    log = f"{student_object.get_full_name()}'s Mod has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
                     self.increase_number_of_changes()
+                    self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
 
     def get_number_of_current_users(self):
@@ -315,3 +336,4 @@ class SuperSaasController:
     def get_number_of_current_bookings(self):
         self.get_all_bookings()
         return len(self._all_bookings)
+
