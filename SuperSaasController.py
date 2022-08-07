@@ -69,6 +69,30 @@ class StudentObjectHolder:
 
 class GoogleSheets:
     def __init__(self):
+        # Worksheets
+        self._log_book = None
+        # ICR/GPA of Values
+        self._students_ids = None
+        self._student_full_names = None
+        self._icrs = None
+        self._gpas = None
+        # All Active Values
+        self._all_active_names = None
+        self._all_active_student_id = None
+        self._all_active_mod = None
+        # Grads Values
+        self._grads_student_ids = None
+        self._grad_full_names = None
+        # Preferred Name Values
+        self._preferred_name_real = None
+        self._preferred_name_preferred = None
+
+    def info_is_there(self):
+        if self._students_ids is None:
+            return False
+        return True
+
+    def get_spreadsheet_info(self):
         # OAuth
         google_sheet = gspread.oauth()
         # Spreadsheets
@@ -139,20 +163,34 @@ class GoogleSheets:
 
 
 class SuperSaasController:
-    def __init__(self, student_holder, google_sheets, icr_cutoff):
+    def __init__(self):
         config = Configuration()
         self._client = Client(config)
         self._client.account_name = "SAE_New_York"
         self._client.api_key = "DB15OLn37rWxCBMrTBCiWw"
         self._schedule_id = "510374"
-        date_today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
-        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=100,
-                                                            start_time=date_today)
-        self._all_users = self._client.users.list(form=False, limit=500)
-        self._icr_cutoff = icr_cutoff
-        self._student_holder = student_holder
-        self._google_sheets = google_sheets
-        self.setup_student_holder()
+        self._all_bookings = None
+        self._all_users = None
+        self._icr_cutoff = 80
+        self._student_holder = StudentObjectHolder()
+        self._google_sheets = GoogleSheets()
+        self._number_of_changes = 0
+
+    def info_is_there(self):
+        if self._google_sheets.info_is_there() and self._all_users is not None:
+            return True
+        return False
+
+    def get_icr(self):
+        return self._icr_cutoff
+
+    def set_icr(self, new_icr):
+        self._icr_cutoff = new_icr
+
+    def get_all_info(self):
+        self._google_sheets.get_spreadsheet_info()
+        self.get_all_users()
+        self.get_all_bookings()
 
     def setup_student_holder(self):
         for user in self._all_users:
@@ -163,7 +201,42 @@ class SuperSaasController:
                 new_student.set_saas_id(supersaas_id)
                 self._student_holder.add_student(new_student)
 
+    def get_all_bookings(self):
+        date_today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
+        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=100,
+                                                            start_time=date_today)
+
+    def get_all_users(self):
+        self._all_users = self._client.users.list(form=False, limit=500)
+        self.setup_student_holder()
+
+    def get_number_of_changes(self):
+        num_changes = self._number_of_changes
+        self._number_of_changes = 0
+        return num_changes
+
+    def increase_number_of_changes(self):
+        self._number_of_changes += 1
+
+    def booking_is_valid(self, student_id, booked_room):
+        student_object = self._google_sheets.get_student_object_from_id(student_id)
+        if student_object.get_mod() == "Graduate":
+            return True
+        student_mod = int(student_object.get_mod()[-1])
+        if booked_room == "S6" and student_mod < 4:
+            return False
+        if booked_room == "SSL" and student_mod < 3:
+            return False
+        if booked_room == "Audient" and student_mod < 2:
+            return False
+        if booked_room == "02R" and student_mod < 2:
+            return False
+        if "Production Suite" in booked_room and student_mod < 2:
+            return False
+        return True
+
     def go_through_all_users(self):
+        self.get_all_users()
         for user in self._all_users:
             ss_full_name = user.__getattribute__("full_name")
             supersaas_id_num = user.__getattribute__("id")
@@ -176,22 +249,22 @@ class SuperSaasController:
                         "full_name": student_object.get_full_name()
                     }
                     self._client.users.update(supersaas_id_num, new_attributes)
-                    log = f"Updated {student_object.get_full_name()}'s name in SuperSaas"
-                    print(log)
+                    log = f"Updated NAME in Student Management. (OLD NAME: {ss_full_name})"
+                    self.increase_number_of_changes()
                     self._google_sheets.log_to_log_book(student_object, log)
 
                 if student_object.get_icr() < self._icr_cutoff:
                     if ss_credits != "0":
-                        log = f"{student_object.get_full_name()} is now below ICR CUTOFF"
-                        print(log)
+                        log = f"Is now below ICR cutoff. Credits have been set to 0"
+                        self.increase_number_of_changes()
                         self._google_sheets.log_to_log_book(student_object, log)
                         new_attributes = {
                             "credit": "0"
                         }
                         self._client.users.update(supersaas_id_num, new_attributes)
                 elif ss_credits != "-":
-                    log = f"{student_object.get_full_name()} is now above ICR CUTOFF"
-                    print(log)
+                    log = f"Is now above ICR cutoff. Credits have been set to infinity"
+                    self.increase_number_of_changes()
                     self._google_sheets.log_to_log_book(student_object, log)
                     new_attributes = {
                         "credit": "-"
@@ -199,29 +272,46 @@ class SuperSaasController:
                     self._client.users.update(supersaas_id_num, new_attributes)
 
     def go_through_all_bookings(self):
+        self.get_all_bookings()
         for booking in self._all_bookings:
             student_name = booking.__getattribute__("full_name")
+            booked_room = booking.__getattribute__("res_name")
+            booking_start_time = booking.__getattribute__("start")
             mod = booking.__getattribute__("field_1_r")
             booking_id = booking.__getattribute__("id")
             student_supersaas_id = booking.__getattribute__("user_id")
             student_object = self._student_holder.get_student_by_saas_id(student_supersaas_id)
+            # If student object exists
             if student_object is not None:
+
+                # Runs when the name of the booking doesn't match the name in the system
                 if student_object.get_full_name() != student_name:
                     attributes = {
                         "full_name": student_object.get_full_name(),
                         "name": student_object.get_student_id() + ".us@saeinstitute.edu"
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
-                    print(f"Changed {student_object.get_full_name()}'s name to real name.")
+                    booking_time = datetime.datetime.fromisoformat(booking_start_time)
+                    log = f"Updated NAME on {booked_room} booking for {booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name})"
+                    self.increase_number_of_changes()
+                    self._google_sheets.log_to_log_book(student_object, log)
+
+                # Runs when the mod of the booking doesn't match the mod in the system
                 if student_object.get_mod() != mod:
                     attributes = {
                         "field_1_r": student_object.get_mod(),
                         "name": student_object.get_student_id() + ".us@saeinstitute.edu"
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
-                    print(f"Changed {student_object.get_full_name()}'s mod to the correct mod")
+                    booking_time = datetime.datetime.fromisoformat(booking_start_time)
+                    log = f"Updated MOD on {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
+                    self.increase_number_of_changes()
+                    self._google_sheets.log_to_log_book(student_object, log)
 
+    def get_number_of_current_users(self):
+        self.get_all_users()
+        return len(self._all_users)
 
-ss = SuperSaasController(StudentObjectHolder(), GoogleSheets(), 80)
-ss.go_through_all_users()
-ss.go_through_all_bookings()
+    def get_number_of_current_bookings(self):
+        self.get_all_bookings()
+        return len(self._all_bookings)
