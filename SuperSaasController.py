@@ -1,3 +1,4 @@
+import SuperSaaS.Error
 from SuperSaaS import Client, Configuration
 import gspread
 import datetime
@@ -133,7 +134,10 @@ class GoogleSheets:
                     full_name = self._student_full_names[index]
             for index in range(len(self._all_active_student_id)):
                 if self._all_active_student_id[index] == student_id:
-                    mod = "Mod " + self._all_active_mod[index][4]
+                    if self._all_active_mod[index] == "#N/A":
+                        mod = "Graduate"
+                    else:
+                        mod = "Mod " + self._all_active_mod[index][4]
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == full_name:
                     full_name = self._preferred_name_preferred[index]
@@ -329,12 +333,17 @@ class SuperSaasController:
                         "field_1_r": student_object.get_mod(),
                         "name": student_object.get_student_id() + ".us@saeinstitute.edu"
                     }
-                    self._client.appointments.update(self._schedule_id, booking_id, attributes)
-                    booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                    log = f"{student_object.get_full_name()}'s Mod has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
-                    self.increase_number_of_changes()
-                    self._app.print_output(log)
-                    self._google_sheets.log_to_log_book(student_object, log)
+                    try:
+                        self._client.appointments.update(self._schedule_id, booking_id, attributes)
+                        booking_time = datetime.datetime.fromisoformat(booking_start_time)
+                        log = f"{student_object.get_full_name()}'s Mod has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
+                        self.increase_number_of_changes()
+                        self._app.print_output(log)
+                        self._google_sheets.log_to_log_book(student_object, log)
+                    except SuperSaaS.Error:
+                        log = f"There was an error updating {student_object.get_full_name()}'s booking - {SuperSaaS.HTTPError}."
+                        self._app.print_output(log)
+
 
     def get_number_of_current_users(self):
         self.get_all_users()

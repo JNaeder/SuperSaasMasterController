@@ -18,11 +18,15 @@ class App(tk.Tk):
         self.supersaas_controller = sscontrol
         # Style
         style = ttk.Style(self)
+        # print(style.theme_names())
+        style.theme_use("default")
+        # print(style.theme_use())
         style.configure("TFrame", background=self.background_color)
-        style.configure("TButton", background=self.background_color, font=("Arial", 12))
+        # style.configure("TButton", background=self.background_color, font=("Arial", 12))
         style.configure("TLabel", background=self.background_color)
-        # print(style.layout("TButton"))
-        # print(style.element_options("Button.label"))
+        # print(style.layout("TFrame"))
+        # print(style.element_options("Frame.border"))
+        # print(style.lookup("TFrame", "background"))
         # Setup
         self.title("SAE NYC Booking Manager")
         self.resizable(False, False)
