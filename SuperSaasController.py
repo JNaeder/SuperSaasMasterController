@@ -1,7 +1,7 @@
 from SuperSaaS import Client, Configuration
 import gspread
 import datetime
-
+import json
 
 class StudentClass:
     def __init__(self, student_id="", full_name="", icr=0.0, gpa=0.0, mod="", saas_id=""):
@@ -177,8 +177,15 @@ class SuperSaasController:
         self._google_sheets = GoogleSheets()
         self._number_of_changes = 0
 
+        self.read_json_data()
+
     def set_app(self, app):
         self._app = app
+
+    def read_json_data(self):
+        with open("data.json", "r") as the_file:
+            the_data = json.load(the_file)
+        self.set_icr(the_data["icr"])
 
     def info_is_there(self):
         if self._google_sheets.info_is_there() and self._all_users is not None:
@@ -336,4 +343,3 @@ class SuperSaasController:
     def get_number_of_current_bookings(self):
         self.get_all_bookings()
         return len(self._all_bookings)
-
