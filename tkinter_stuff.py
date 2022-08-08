@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from SuperSaasController import SuperSaasController
 import webbrowser
+from PIL import Image, ImageTk
 
 
 class App(tk.Tk):
@@ -15,6 +16,13 @@ class App(tk.Tk):
         self.output_value = tk.StringVar()
         # Outside Objects
         self.supersaas_controller = sscontrol
+        # Style
+        style = ttk.Style(self)
+        style.configure("TFrame", background=self.background_color)
+        style.configure("TButton", background=self.background_color, font=("Arial", 12))
+        style.configure("TLabel", background=self.background_color)
+        # print(style.layout("TButton"))
+        # print(style.element_options("Button.label"))
         # Setup
         self.title("SAE NYC Booking Manager")
         self.resizable(False, False)
@@ -25,9 +33,9 @@ class App(tk.Tk):
         self.output_screen.columnconfigure(0, weight=1)
         buttons_frame = ButtonFrames(self)
         # Layouts
-        # title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=10, padx=10)
-        # title_frame.columnconfigure(0, weight=1)
-        # title_frame.rowconfigure(0, weight=1)
+        title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=10, padx=10)
+        title_frame.columnconfigure(1, weight=1)
+        title_frame.columnconfigure(0, weight=1)
         self.output_screen.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
         buttons_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
         buttons_frame.columnconfigure(0, weight=1)
@@ -42,16 +50,17 @@ class App(tk.Tk):
 class TitleFrame(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
+        global logo
+        # Variables
+        logo = ImageTk.PhotoImage(Image.open("Transparent Smaller.png").resize(size=(128, 128)))
 
         # Widgets
-        title = ttk.Label(self,
-                          text="SAE NYC Booking Manager", background="black",
-                          foreground="white",
-                          font=("Arial", 15)
-                          )
+        logo_label = ttk.Label(self, image=logo, background=container.background_color, padding=(50, 0, 50, 0))
+        title_label = ttk.Label(self, text="SAE NYC Booking Manager", foreground="White", font=("Arial", 35))
 
         # Layout
-        title.grid(column=0, row=1, columnspan=2, sticky="ew")
+        logo_label.grid(row=0, column=0)
+        title_label.grid(row=0, column=1, sticky="ew")
 
 
 class OutputScreen(ttk.Frame):
@@ -73,7 +82,6 @@ class ButtonFrames(ttk.Frame):
     def __init__(self, container):
         super().__init__(container)
         self.controller = container
-        print(self.controller)
         # Buttons
         get_number_users_button = ttk.Button(self, text="Get # of Users", command=self.get_number_of_users)
         go_through_users_button = ttk.Button(self, text="Go Through Users", command=self.go_through_all_users)
@@ -86,8 +94,8 @@ class ButtonFrames(ttk.Frame):
         go_through_users_button.grid(row=0, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         get_number_of_bookings_button.grid(row=1, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         go_through_bookings_button.grid(row=1, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_info_button.grid(row=2, column=0, columnspan=2, sticky="ew")
-        open_web_pages_button.grid(row=3, column=0, columnspan=2)
+        get_info_button.grid(row=2, column=0, columnspan=2, ipadx=50, ipady=5)
+        open_web_pages_button.grid(row=3, column=0, columnspan=2, ipadx=50, ipady=5)
 
         for button in self.winfo_children():
             self.set_button_states(button)
@@ -141,7 +149,8 @@ class ButtonFrames(ttk.Frame):
         self.controller.print_output("Web pages open")
 
 
-sscontrol = SuperSaasController()
-app = App(sscontrol)
-sscontrol.set_app(app)
-app.mainloop()
+if __name__ == "__main__":
+    ss = SuperSaasController()
+    app = App(ss)
+    ss.set_app(app)
+    app.mainloop()
