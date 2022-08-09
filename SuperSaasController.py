@@ -3,6 +3,8 @@ from SuperSaaS import Client, Configuration
 import gspread
 import datetime
 import json
+from add_bookings_repeating import TeacherBooking
+
 
 class StudentClass:
     def __init__(self, student_id="", full_name="", icr=0.0, gpa=0.0, mod="", saas_id=""):
@@ -179,6 +181,7 @@ class SuperSaasController:
         self._icr_cutoff = 80
         self._student_holder = StudentObjectHolder()
         self._google_sheets = GoogleSheets()
+        self._teacher_booking = TeacherBooking(self)
         self._number_of_changes = 0
 
         self.read_json_data()
@@ -202,12 +205,16 @@ class SuperSaasController:
     def set_icr(self, new_icr):
         self._icr_cutoff = new_icr
 
+    def get_teacher_booking(self):
+        return self._teacher_booking
+
     def get_all_info(self):
         self._google_sheets.get_spreadsheet_info()
-        self.get_all_users()
+        self.setup_student_holder()
         self.get_all_bookings()
 
     def setup_student_holder(self):
+        self._all_users = self._client.users.list(form=False, limit=500)
         for user in self._all_users:
             student_id = user.__getattribute__("name").split(".")[0]
             supersaas_id = user.__getattribute__("id")
@@ -222,8 +229,7 @@ class SuperSaasController:
                                                             start_time=date_today)
 
     def get_all_users(self):
-        self._all_users = self._client.users.list(form=False, limit=500)
-        self.setup_student_holder()
+        return self._all_users
 
     def get_number_of_changes(self):
         num_changes = self._number_of_changes
@@ -232,6 +238,9 @@ class SuperSaasController:
 
     def increase_number_of_changes(self):
         self._number_of_changes += 1
+
+    def create_booking(self, booking_id, attributes):
+        self._client.appointments.create(schedule_id=self._schedule_id, user_id=booking_id, attributes=attributes)
 
     def booking_is_valid(self, student_id, booked_room):
         student_object = self._google_sheets.get_student_object_from_id(student_id)
@@ -251,7 +260,7 @@ class SuperSaasController:
         return True
 
     def go_through_all_users(self):
-        self.get_all_users()
+        self.setup_student_holder()
         for user in self._all_users:
             ss_full_name = user.__getattribute__("full_name")
             supersaas_id_num = user.__getattribute__("id")
@@ -340,15 +349,23 @@ class SuperSaasController:
                         self.increase_number_of_changes()
                         self._app.print_output(log)
                         self._google_sheets.log_to_log_book(student_object, log)
-                    except SuperSaaS.Error:
-                        log = f"There was an error updating {student_object.get_full_name()}'s booking - {SuperSaaS.Error}."
+                    except SuperSaaS.Error as error:
+                        log = f"There was an error updating {student_object.get_full_name()}'s booking."
+                        self._app.print_output(error)
                         self._app.print_output(log)
 
-
     def get_number_of_current_users(self):
-        self.get_all_users()
+        self.setup_student_holder()
         return len(self._all_users)
 
     def get_number_of_current_bookings(self):
         self.get_all_bookings()
         return len(self._all_bookings)
+
+
+if __name__ == "__main__":
+    ss = SuperSaasController()
+    ss.get_all_info()
+    tb = ss.get_teacher_booking()
+    august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
+    tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)
