@@ -23,10 +23,11 @@ class App(tk.Tk):
         # print(style.theme_use())
         style.configure("TFrame", background=self.background_color)
         # style.configure("TButton", background=self.background_color, font=("Arial", 12))
-        style.configure("TLabel", background=self.background_color)
-        # print(style.layout("TFrame"))
-        # print(style.element_options("Frame.border"))
-        # print(style.lookup("TFrame", "background"))
+        style.configure("TLabel", background=self.background_color, foreground="white")
+        style.configure("TCheckbutton", background=self.background_color, foreground="white")
+        print(style.layout("TCheckbutton"))
+        print(style.element_options("Checkbutton.label"))
+        print(style.lookup("TCheckbutton", "text"))
         # Setup
         self.title("SAE NYC Booking Manager")
         self.resizable(False, False)
@@ -93,6 +94,7 @@ class ButtonFrames(ttk.Frame):
         go_through_bookings_button = ttk.Button(self, text="Go Through Bookings", command=self.go_through_all_bookings)
         get_info_button = ttk.Button(self, text="Get All Info", command=self.get_all_info)
         open_web_pages_button = ttk.Button(self, text="Open Web Pages", command=self.open_web_pages)
+        teacher_booking_button = ttk.Button(self, text="Teacher Booking", command=self.open_teacher_booking_page)
         # Layout
         get_number_users_button.grid(row=0, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         go_through_users_button.grid(row=0, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
@@ -100,6 +102,7 @@ class ButtonFrames(ttk.Frame):
         go_through_bookings_button.grid(row=1, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         get_info_button.grid(row=2, column=0, columnspan=2, ipadx=50, ipady=5)
         open_web_pages_button.grid(row=3, column=0, columnspan=2, ipadx=50, ipady=5)
+        teacher_booking_button.grid(row=4, column=0, columnspan=2, ipadx=50, ipady=5)
 
         for button in self.winfo_children():
             self.set_button_states(button)
@@ -152,11 +155,89 @@ class ButtonFrames(ttk.Frame):
         webbrowser.open("https://supersaas.com/schedule/SAE_New_York/5th_Floor_Booking")
         self.controller.print_output("Web pages open")
 
+    def open_teacher_booking_page(self):
+        teacher_booking_page = TeacherBookingScreen(self.controller)
+        teacher_booking_page.mainloop()
+
+
+class TeacherBookingScreen(tk.Toplevel):
+    def __init__(self, container):
+        super().__init__(container)
+        self.controller = container
+
+        # Text Variables
+        self.name_selection_var = tk.StringVar()
+        self.mod_selection_var = tk.StringVar()
+        self.studio_selection_var = tk.StringVar()
+        self.time_start_var = tk.StringVar()
+        self.time_length_var = tk.StringVar()
+        self.start_date_var = tk.StringVar()
+        self.end_date_var = tk.StringVar()
+
+        # Setup
+        self.title("Teacher Booking")
+        self.config(background=self.controller.background_color, padx=50, pady=50)
+        self.resizable(False, False)
+
+        # Widgets
+        name_selection_label = ttk.Label(self, text="Name: ")
+        name_selection = ttk.Combobox(self, textvariable=self.name_selection_var, state="readonly")
+        name_selection['value'] = self.controller.supersaas_controller.get_employee_list()
+        mod_selection_label = ttk.Label(self, text="Mod: ")
+        mod_selection = ttk.Combobox(self, textvariable=self.mod_selection_var, state="readonly")
+        mod_selection['values'] = ("Mod 1", "Mod 2", "Mod 3", "Mod 4")
+        studio_selection_label = ttk.Label(self, text="Studio: ")
+        studio_selection = ttk.Combobox(self, textvariable=self.studio_selection_var, state="readonly")
+        studio_selection['values'] = ("SSL", "Audient", "Avid S6", "02R", "Production Suite 1", "Production Suite 2",
+                                      "Production Suite 3", "Production Suite 4")
+        time_start_label = ttk.Label(self, text="Start Time: ")
+        time_start_entry = ttk.Entry(self, textvariable=self.time_start_var)
+        time_length_label = ttk.Label(self, text="Booking Length: ")
+        time_length_entry = ttk.Entry(self, textvariable=self.time_length_var)
+        start_date_label = ttk.Label(self, text="Start Date: ")
+        start_date_entry = ttk.Entry(self, textvariable=self.start_date_var)
+        end_date_label = ttk.Label(self, text="End Date: ")
+        end_date_entry = ttk.Entry(self, textvariable=self.end_date_var)
+        submit_button = ttk.Button(self, text="Book", command=self.submit_button)
+
+        # Layout
+        name_selection_label.grid(row=0, column=0)
+        name_selection.grid(row=0, column=1)
+        mod_selection_label.grid(row=1, column=0)
+        mod_selection.grid(row=1, column=1)
+        studio_selection_label.grid(row=2, column=0)
+        studio_selection.grid(row=2, column=1)
+        time_start_label.grid(row=3, column=0)
+        time_start_entry.grid(row=3, column=1)
+        time_length_label.grid(row=4, column=0)
+        time_length_entry.grid(row=4, column=1)
+        start_date_label.grid(row=5, column=0)
+        start_date_entry.grid(row=5, column=1)
+        end_date_label.grid(row=6, column=0)
+        end_date_entry.grid(row=6, column=1)
+        submit_button.grid(row=30, column=0, columnspan=2)
+
+        for child in self.winfo_children():
+            child.grid_configure(pady=2, sticky="we")
+            if "label" in child.winfo_name():
+                child.grid_configure(sticky="e")
+
+    def submit_button(self):
+        the_name = self.name_selection_var.get()
+        the_mod = int(self.mod_selection_var.get()[4])
+        the_studio = self.studio_selection_var.get()
+        start_time = int(self.time_start_var.get())
+        length_time = int(self.time_length_var.get())
+        start_date = self.start_date_var.get()
+        end_date = self.end_date_var.get()
+        self.controller.supersaas_controller.set_repeating_bookings(the_name, the_mod, the_studio, start_time,
+                                                                    length_time, start_date, end_date)
+        self.controller.print_output(f"Booked {the_studio} for {the_name}, from {start_date} to {end_date}")
+        self.destroy()
+
 
 if __name__ == "__main__":
     ss = SuperSaasController()
     app = App(ss)
     ss.set_app(app)
     app.mainloop()
-
-
