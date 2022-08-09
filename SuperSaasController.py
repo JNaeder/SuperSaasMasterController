@@ -341,7 +341,7 @@ class SuperSaasController:
                         self._app.print_output(log)
                         self._google_sheets.log_to_log_book(student_object, log)
                     except SuperSaaS.Error:
-                        log = f"There was an error updating {student_object.get_full_name()}'s booking - {SuperSaaS.HTTPError}."
+                        log = f"There was an error updating {student_object.get_full_name()}'s booking - {SuperSaaS.Error}."
                         self._app.print_output(log)
 
 
