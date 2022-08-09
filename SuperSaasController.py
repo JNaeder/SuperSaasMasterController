@@ -322,35 +322,38 @@ class SuperSaasController:
             student_object = self._student_holder.get_student_by_saas_id(student_supersaas_id)
             # If student object exists
             if student_object is not None:
+                correct_mod = student_object.get_mod()
+                correct_name = student_object.get_full_name()
+                correct_student_id = student_object.get_student_id()
 
                 # Runs when the name of the booking doesn't match the name in the system
-                if student_object.get_full_name() != student_name:
+                if correct_name != student_name:
                     attributes = {
-                        "full_name": student_object.get_full_name(),
-                        "name": student_object.get_student_id() + ".us@saeinstitute.edu"
+                        "full_name": correct_name,
+                        "name": correct_student_id + ".us@saeinstitute.edu"
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
                     booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                    log = f"{student_object.get_full_name()}'s name has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name}) "
+                    log = f"{correct_name}'s name has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name}) "
                     self.increase_number_of_changes()
                     self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
 
                 # Runs when the mod of the booking doesn't match the mod in the system
-                if student_object.get_mod() != mod:
+                if correct_mod != mod:
                     attributes = {
-                        "field_1_r": student_object.get_mod(),
-                        "name": student_object.get_student_id() + ".us@saeinstitute.edu"
+                        "field_1_r": correct_mod,
+                        "name": correct_student_id + ".us@saeinstitute.edu"
                     }
                     try:
                         self._client.appointments.update(self._schedule_id, booking_id, attributes)
                         booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                        log = f"{student_object.get_full_name()}'s Mod has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
+                        log = f"{correct_name}'s Mod has been updated for {booked_room} booking for {booking_time.strftime('%A %m/%d')}"
                         self.increase_number_of_changes()
                         self._app.print_output(log)
                         self._google_sheets.log_to_log_book(student_object, log)
                     except SuperSaaS.Error as error:
-                        log = f"There was an error updating {student_object.get_full_name()}'s booking."
+                        log = f"There was an error updating {correct_name}'s booking."
                         self._app.print_output(error)
                         self._app.print_output(log)
 
@@ -368,4 +371,4 @@ if __name__ == "__main__":
     ss.get_all_info()
     tb = ss.get_teacher_booking()
     august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
-    tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)
+    # tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)
