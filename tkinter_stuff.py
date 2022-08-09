@@ -56,7 +56,7 @@ class TitleFrame(ttk.Frame):
         super().__init__(container)
         global logo
         # Variables
-        logo = ImageTk.PhotoImage(Image.open("Transparent Smaller.png").resize(size=(128, 128)))
+        logo = ImageTk.PhotoImage(Image.open("imgs/Transparent Smaller.png").resize(size=(128, 128)))
 
         # Widgets
         logo_label = ttk.Label(self, image=logo, background=container.background_color, padding=(50, 0, 50, 0))
