@@ -216,6 +216,9 @@ class SuperSaasController:
     def get_teacher_booking(self):
         return self._teacher_booking
 
+    def get_student_holder(self):
+        return self._student_holder
+
     def set_repeating_bookings(self, the_name, the_mod, the_studio, start_time, length_time, start_date, end_date):
         s_date = [int(date) for date in start_date.split("/")]
         e_date = [int(date) for date in end_date.split("/")]

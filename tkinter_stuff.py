@@ -25,9 +25,9 @@ class App(tk.Tk):
         # style.configure("TButton", background=self.background_color, font=("Arial", 12))
         style.configure("TLabel", background=self.background_color, foreground="white")
         style.configure("TCheckbutton", background=self.background_color, foreground="white")
-        print(style.layout("TCheckbutton"))
-        print(style.element_options("Checkbutton.label"))
-        print(style.lookup("TCheckbutton", "text"))
+        # print(style.layout("TCheckbutton"))
+        # print(style.element_options("Checkbutton.label"))
+        # print(style.lookup("TCheckbutton", "text"))
         # Setup
         self.title("SAE NYC Booking Manager")
         self.resizable(False, False)
@@ -43,8 +43,8 @@ class App(tk.Tk):
         title_frame.columnconfigure(0, weight=1)
         self.output_screen.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
         buttons_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
-        buttons_frame.columnconfigure(0, weight=1)
-        buttons_frame.columnconfigure(1, weight=1)
+        # buttons_frame.columnconfigure(0, weight=1)
+        # buttons_frame.columnconfigure(1, weight=1)
 
         self.print_output("Welcome to SAE NYC Booking Manager.")
 
@@ -95,19 +95,23 @@ class ButtonFrames(ttk.Frame):
         get_info_button = ttk.Button(self, text="Get All Info", command=self.get_all_info)
         open_web_pages_button = ttk.Button(self, text="Open Web Pages", command=self.open_web_pages)
         teacher_booking_button = ttk.Button(self, text="Teacher Booking", command=self.open_teacher_booking_page)
+        student_list_button = ttk.Button(self, text="Student List", command=self.open_student_list_page)
         # Layout
-        get_number_users_button.grid(row=0, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        go_through_users_button.grid(row=0, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_number_of_bookings_button.grid(row=1, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        go_through_bookings_button.grid(row=1, column=1, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_info_button.grid(row=2, column=0, columnspan=2, ipadx=50, ipady=5)
-        open_web_pages_button.grid(row=3, column=0, columnspan=2, ipadx=50, ipady=5)
-        teacher_booking_button.grid(row=4, column=0, columnspan=2, ipadx=50, ipady=5)
+        get_number_users_button.grid(row=0, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        go_through_users_button.grid(row=0, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        get_number_of_bookings_button.grid(row=1, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        go_through_bookings_button.grid(row=1, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+
+        get_info_button.grid(row=2, column=1, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        open_web_pages_button.grid(row=2, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        teacher_booking_button.grid(row=3, column=1, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        student_list_button.grid(row=3, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
 
         for button in self.winfo_children():
             self.set_button_states(button)
         get_info_button['state'] = "normal"
         open_web_pages_button['state'] = "normal"
+        student_list_button['state'] = "normal"
 
     def set_button_states(self, button):
         if not self.controller.supersaas_controller.info_is_there():
@@ -158,6 +162,10 @@ class ButtonFrames(ttk.Frame):
     def open_teacher_booking_page(self):
         teacher_booking_page = TeacherBookingScreen(self.controller)
         teacher_booking_page.mainloop()
+
+    def open_student_list_page(self):
+        student_list_page = StudentListScreen(self.controller)
+        student_list_page.mainloop()
 
 
 class TeacherBookingScreen(tk.Toplevel):
@@ -234,6 +242,34 @@ class TeacherBookingScreen(tk.Toplevel):
                                                                     length_time, start_date, end_date)
         self.controller.print_output(f"Booked {the_studio} for {the_name}, from {start_date} to {end_date}")
         self.destroy()
+
+
+class StudentListScreen(tk.Toplevel):
+    def __init__(self, container):
+        super().__init__(container)
+        self.controller = container
+        self.title("Student List")
+        self.geometry("600x400")
+        self.config(background=self.controller.background_color)
+
+        self.the_frame = tk.Frame(self, background="red")
+        self.the_canvas = tk.Canvas(self.the_frame, background="green")
+        self.the_canvas.columnconfigure(0, weight=1)
+
+        self.the_frame.grid(sticky="nsew")
+        self.the_canvas.grid(sticky="nsew")
+
+        self.show_list()
+
+
+    def show_list(self):
+        list_of_students = self.controller.supersaas_controller.get_student_holder().get_list_of_student_objects()
+        for index in range(len(list_of_students)):
+            student_object = list_of_students[index]
+            full_name = student_object.get_full_name()
+            mod = student_object.get_mod()
+            new_student_label = ttk.Label(self.the_canvas, text=full_name + " " + mod)
+            new_student_label.grid(row=index, column=0, sticky="ew", padx=50)
 
 
 if __name__ == "__main__":
