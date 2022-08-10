@@ -7,13 +7,14 @@ from add_bookings_repeating import TeacherBooking
 
 
 class StudentClass:
-    def __init__(self, student_id="", full_name="", icr=0.0, gpa=0.0, mod="", saas_id=""):
+    def __init__(self, student_id, full_name, icr, gpa, mod, saas_id="", the_credits=""):
         self._student_id = student_id
         self._full_name = full_name
         self._icr = icr
         self._gpa = gpa
         self._mod = mod
         self._saas_id = saas_id
+        self._credits = the_credits
 
     def __repr__(self):
         output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod}" \
@@ -41,6 +42,12 @@ class StudentClass:
     def get_saas_id(self):
         return self._saas_id
 
+    def set_credits(self, new_credits):
+        self._credits = new_credits
+
+    def get_credits(self):
+        return self._credits
+
 
 class StudentObjectHolder:
     def __init__(self):
@@ -48,6 +55,9 @@ class StudentObjectHolder:
 
     def get_list_of_student_objects(self):
         return self._list_of_student_objects
+
+    def reset_list_of_student(self):
+        self._list_of_student_objects = []
 
     def add_student(self, student_object):
         self._list_of_student_objects.append(student_object)
@@ -60,12 +70,6 @@ class StudentObjectHolder:
     def get_student_by_student_id(self, student_id):
         for student in self._list_of_student_objects:
             if student.get_student_id() == student_id:
-                return student
-        return None
-
-    def get_student_by_saas_id(self, saas_id):
-        for student in self._list_of_student_objects:
-            if student.get_saas_id() == saas_id and saas_id != "":
                 return student
         return None
 
@@ -128,25 +132,31 @@ class GoogleSheets:
         icr = 0.0
         gpa = 0.0
         mod = ""
+        # Check that ID from SuperSaas is in both academic sheets
         if student_id in self._students_ids and student_id in self._all_active_student_id:
+            # Loop through all the IDs in the ICR Sheet
             for index in range(1, len(self._students_ids)):
                 if self._students_ids[index] == student_id:
                     icr = float(self._icrs[index][0:-1])
                     gpa = float(self._gpas[index])
                     full_name = self._student_full_names[index]
+            # Loop through all the IDs in the Active Sheet
             for index in range(len(self._all_active_student_id)):
                 if self._all_active_student_id[index] == student_id:
                     if self._all_active_mod[index] == "#N/A":
                         mod = "Graduate"
-                        icr = 100
-                        gpa = 4
+                        icr = "-"
+                        gpa = "-"
                     else:
                         mod = "Mod " + self._all_active_mod[index][4]
+            # Checking for preferred names
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == full_name:
                     full_name = self._preferred_name_preferred[index]
+            # Create new Student object
             new_student = StudentClass(student_id, full_name, icr, gpa, mod)
             return new_student
+        # Check if student ID is in the Grad sheet
         elif student_id in self._grads_student_ids:
             for index in range(1, len(self._grads_student_ids)):
                 if self._grads_student_ids[index] == student_id:
@@ -155,7 +165,7 @@ class GoogleSheets:
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == full_name:
                     full_name = self._preferred_name_preferred[index]
-            new_student = StudentClass(student_id, full_name, 100, 4, mod)
+            new_student = StudentClass(student_id, full_name, "-", "-", mod)
             return new_student
 
         return None
@@ -252,17 +262,20 @@ class SuperSaasController:
 
     def setup_student_holder(self):
         self._all_users = self._client.users.list(form=False, limit=500)
+        self._student_holder.reset_list_of_student()
         for user in self._all_users:
             student_id = user.__getattribute__("name").split(".")[0]
             supersaas_id = user.__getattribute__("id")
+            ss_credit = user.__getattribute__("credit")
             new_student = self._google_sheets.get_student_object_from_id(student_id)
             if new_student is not None:
                 new_student.set_saas_id(supersaas_id)
+                new_student.set_credits(ss_credit)
                 self._student_holder.add_student(new_student)
 
     def set_all_bookings(self):
         date_today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
-        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=100,
+        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=500,
                                                             start_time=date_today)
 
     def get_all_users(self):
@@ -305,6 +318,7 @@ class SuperSaasController:
             supersaas_id_num = user.__getattribute__("id")
             ss_credits = user.__getattribute__('credit')
             role = user.__getattribute__('role')
+            student_id = user.__getattribute__("name").split(".")[0]
             email_ending = user.__getattribute__("name").split("@")[1]
 
             # Check if user has an employee email
@@ -318,56 +332,76 @@ class SuperSaasController:
                 self.increase_number_of_changes()
                 self._app.print_output(log)
 
-            # get student object from ID, and then compare that info with Supersaas info
-            student_object = self._student_holder.get_student_by_saas_id(supersaas_id_num)
+            # Get student object from ID, and then compare that info with Supersaas info
+            student_object = self._student_holder.get_student_by_student_id(student_id)
             if student_object is not None:
                 correct_full_name = student_object.get_full_name()
                 student_icr = student_object.get_icr()
                 student_gpa = student_object.get_gpa()
-                can_book = student_icr > self._icr_cutoff and student_gpa > self._gpa_cutoff
-                # Check if the name of the user is the name in the system
-                if correct_full_name != ss_full_name:
-                    new_attributes = {
-                        "full_name": correct_full_name
-                    }
-                    self._client.users.update(supersaas_id_num, new_attributes)
-                    log = f"{correct_full_name}'s name has been updated in Student Management." \
-                          f" (OLD NAME: {ss_full_name})"
+                # If the student is listed as a graduate
+                if student_object.get_mod() == "Graduate" and ss_credits != "-":
+                    log = f"{correct_full_name} is a graduate. Credits set to infinity"
                     self.increase_number_of_changes()
                     self._app.print_output(log)
                     self._google_sheets.log_to_log_book(student_object, log)
+                    new_attributes = {
+                        "credit": "-"
+                    }
+                    self._client.users.update(supersaas_id_num, new_attributes)
+                    student_object.set_credits("-")
+                if student_object.get_mod() != "Graduate":
+                    can_book = student_icr > self._icr_cutoff and student_gpa >= self._gpa_cutoff
+                    # Check if the name of the user is the name in the system
+                    if correct_full_name != ss_full_name:
+                        new_attributes = {
+                            "full_name": correct_full_name
+                        }
+                        self._client.users.update(supersaas_id_num, new_attributes)
+                        log = f"{correct_full_name}'s name has been updated in Student Management." \
+                              f" (OLD NAME: {ss_full_name})"
+                        self.increase_number_of_changes()
+                        self._app.print_output(log)
+                        self._google_sheets.log_to_log_book(student_object, log)
 
-                # Check if user's credits need to change based on if they can book or not.
-                if ss_credits == "0":
-                    if can_book:
-                        log = f"{correct_full_name} is now able to book again. Credits updated to infinity"
-                        self.increase_number_of_changes()
-                        self._app.print_output(log)
-                        self._google_sheets.log_to_log_book(student_object, log)
-                        new_attributes = {
-                            "credit": "-"
-                        }
-                        self._client.users.update(supersaas_id_num, new_attributes)
-                elif ss_credits == "-":
-                    if not can_book:
-                        if student_icr < self._icr_cutoff:
-                            log = f"{correct_full_name} is now below the {self._icr_cutoff}% " \
-                                  f"ICR cutoff. Credits have been set to 0"
-                        else:
-                            log = f"{correct_full_name} is now below the {self._gpa_cutoff} " \
-                                  f"GPA cutoff. Credits have been set to 0"
-                        self.increase_number_of_changes()
-                        self._app.print_output(log)
-                        self._google_sheets.log_to_log_book(student_object, log)
-                        new_attributes = {
-                            "credit": "0"
-                        }
-                        self._client.users.update(supersaas_id_num, new_attributes)
+                    # Check if user's credits need to change based on if they can book or not.
+                    if ss_credits != "-":
+                        if can_book:
+                            log = f"{correct_full_name} is now able to book. Credits updated to infinity"
+                            self.increase_number_of_changes()
+                            self._app.print_output(log)
+                            self._google_sheets.log_to_log_book(student_object, log)
+                            new_attributes = {
+                                "credit": "-"
+                            }
+                            self._client.users.update(supersaas_id_num, new_attributes)
+                            student_object.set_credits("-")
+                    elif ss_credits != "0":
+                        if not can_book:
+                            if student_icr < self._icr_cutoff:
+                                log = f"{correct_full_name} is now below the {self._icr_cutoff}% " \
+                                      f"ICR cutoff. Credits have been set to 0"
+                            else:
+                                log = f"{correct_full_name} is now below the {self._gpa_cutoff} " \
+                                      f"GPA cutoff. Credits have been set to 0"
+                            self.increase_number_of_changes()
+                            self._app.print_output(log)
+                            self._google_sheets.log_to_log_book(student_object, log)
+                            new_attributes = {
+                                "credit": "0"
+                            }
+                            self._client.users.update(supersaas_id_num, new_attributes)
+                            student_object.set_credits("0")
 
             # Check if user is not in the academic system, or not an employee
-            elif email_ending != "sae.edu":
+            elif email_ending != "sae.edu" and ss_credits != "0":
+                new_attributes = {
+                    "credit": "0"
+                }
+                self._client.users.update(supersaas_id_num, new_attributes)
+                student_object.set_credits("0")
                 full_name = user.__getattribute__("full_name")
-                log = f"{full_name}'s data is not in the system"
+                log = f"{full_name}'s data is not in the system - credits set to 0"
+                self.increase_number_of_changes()
                 self._app.print_output(log)
 
     def go_through_all_bookings(self):
@@ -378,8 +412,8 @@ class SuperSaasController:
             booking_start_time = booking.__getattribute__("start")
             mod = booking.__getattribute__("field_1_r")
             booking_id = booking.__getattribute__("id")
-            student_supersaas_id = booking.__getattribute__("user_id")
-            student_object = self._student_holder.get_student_by_saas_id(student_supersaas_id)
+            student_id = booking.__getattribute__("created_by").split(".")[0]
+            student_object = self._student_holder.get_student_by_student_id(student_id)
             # If student object exists
             if student_object is not None:
                 correct_mod = student_object.get_mod()
@@ -432,5 +466,5 @@ if __name__ == "__main__":
     ss = SuperSaasController()
     ss.get_all_info()
     tb = ss.get_teacher_booking()
-    august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
+    # august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
     # tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)

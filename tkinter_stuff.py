@@ -99,7 +99,8 @@ class ButtonFrames(ttk.Frame):
         # Layout
         get_number_users_button.grid(row=0, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
         go_through_users_button.grid(row=0, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_number_of_bookings_button.grid(row=1, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        get_number_of_bookings_button.grid(row=1, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5,
+                                           padx=5)
         go_through_bookings_button.grid(row=1, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
 
         get_info_button.grid(row=2, column=1, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
@@ -111,7 +112,6 @@ class ButtonFrames(ttk.Frame):
             self.set_button_states(button)
         get_info_button['state'] = "normal"
         open_web_pages_button['state'] = "normal"
-        student_list_button['state'] = "normal"
 
     def set_button_states(self, button):
         if not self.controller.supersaas_controller.info_is_there():
@@ -165,6 +165,8 @@ class ButtonFrames(ttk.Frame):
 
     def open_student_list_page(self):
         student_list_page = StudentListScreen(self.controller)
+        student_list_page.columnconfigure(0, weight=1)
+        student_list_page.rowconfigure(0, weight=1)
         student_list_page.mainloop()
 
 
@@ -249,27 +251,67 @@ class StudentListScreen(tk.Toplevel):
         super().__init__(container)
         self.controller = container
         self.title("Student List")
-        self.geometry("600x400")
+        self.geometry("700x600")
         self.config(background=self.controller.background_color)
 
-        self.the_frame = tk.Frame(self, background="red")
-        self.the_canvas = tk.Canvas(self.the_frame, background="green")
-        self.the_canvas.columnconfigure(0, weight=1)
+        self.the_frame = tk.Frame(self, height=600)
+        self.the_frame.columnconfigure(0, weight=1)
+
+        self.the_canvas = tk.Canvas(self.the_frame, height=600, background=self.controller.background_color)
+
+        self.scroll_bar = ttk.Scrollbar(self, orient="vertical", command=self.the_canvas.yview)
+
+        self.scrollable_frame = ttk.Frame(self.the_canvas, padding=10)
+        self.scrollable_frame.bind("<Configure>", lambda e: self.the_canvas.configure(scrollregion=self.the_canvas.bbox("all")))
+        # self.scrollable_frame.columnconfigure(0, weight=1)
+
+        self.the_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
+        self.the_canvas.config(yscrollcommand=self.scroll_bar.set)
 
         self.the_frame.grid(sticky="nsew")
         self.the_canvas.grid(sticky="nsew")
+        self.scroll_bar.grid(row=0, column=1, sticky="ns")
 
         self.show_list()
 
+    @staticmethod
+    def get_key(some_object):
+        return some_object.get_full_name().split(" ")[-1]
 
     def show_list(self):
         list_of_students = self.controller.supersaas_controller.get_student_holder().get_list_of_student_objects()
+        list_of_students.sort(key=self.get_key)
         for index in range(len(list_of_students)):
             student_object = list_of_students[index]
             full_name = student_object.get_full_name()
+            last_name = full_name.split(" ")[-1]
+            first_name = full_name.split(" ")[0]
+            formal_name = f"{last_name}, {first_name}"
             mod = student_object.get_mod()
-            new_student_label = ttk.Label(self.the_canvas, text=full_name + " " + mod)
-            new_student_label.grid(row=index, column=0, sticky="ew", padx=50)
+            icr = student_object.get_icr()
+            gpa = student_object.get_gpa()
+            the_credits = student_object.get_credits()
+            background_color = "#3f7343"
+
+            if the_credits == "0":
+                background_color = "#aa0808"
+            elif mod == "Graduate":
+                background_color = "#3f5473"
+
+            info_frame = tk.LabelFrame(self.scrollable_frame, background=background_color)
+            info_frame.grid(sticky="ew", pady=5)
+
+            name_label = ttk.Label(info_frame, text=formal_name, font=("Arial", 15), background=background_color)
+            mod_label = ttk.Label(info_frame, text=mod, font=("Arial", 10), background=background_color)
+            icr_label = ttk.Label(info_frame, text=f"ICR: {icr}%", font=("Arial", 10), background=background_color)
+            gpa_label = ttk.Label(info_frame, text=f"GPA: {gpa}", font=("Arial", 10), background=background_color)
+            credit_label = ttk.Label(info_frame, text=f"Credits: {the_credits}", font=("Arial", 10), background=background_color)
+
+            name_label.grid(row=index, column=0, sticky="ew", padx=50, pady=5)
+            mod_label.grid(row=index, column=1, sticky="ew", ipadx=5)
+            icr_label.grid(row=index, column=2, sticky="ew", ipadx=5)
+            gpa_label.grid(row=index, column=3, sticky="ew", ipadx=5)
+            credit_label.grid(row=index, column=4, sticky="ew", ipadx=5)
 
 
 if __name__ == "__main__":
