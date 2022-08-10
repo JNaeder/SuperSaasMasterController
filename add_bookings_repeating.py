@@ -1,5 +1,5 @@
 import datetime
-
+import math
 
 class TeacherBooking:
     def __init__(self, sscontrol):
@@ -12,9 +12,13 @@ class TeacherBooking:
             "Production Suite 3": 866791,
             "Production Suite 4": 866792,
             "02R": 740584,
-            "Avid S6": 740587
+            "Avid S6": 740587,
+            "Neve": 905693
         }
         self._days_of_class = ["Monday", "Tuesday", "Wednesday", "Thursday"]
+
+    def get_resource_dict(self):
+        return self._resource_dict
 
     def get_list_of_dates_for_term(self, start_date, end_date):
         output = []
@@ -51,11 +55,18 @@ class TeacherBooking:
         }
         self._sscontrol.create_booking(booking_id, attributes)
 
-    def create_repeating_bookings(self, the_name, the_studio, the_mod, start_time, length, list_of_dates):
+    def create_repeating_bookings(self, the_name, the_studio, the_mod, start_time, end_time, list_of_dates):
         teacher_info = self.get_teacher_info_by_name(the_name)
         studio_id = self.get_resource_id_by_name(the_studio)
+        start_hour = math.trunc(start_time)
+        start_min = int((start_time % start_hour) * 60)
+        end_hour = math.trunc(end_time)
+        end_min = int((end_time % end_hour) * 60)
+
         for the_date in list_of_dates:
-            the_time = datetime.time(start_time, 0, 0)
-            start_datetime = datetime.datetime.combine(the_date, the_time)
-            end_time = start_datetime + datetime.timedelta(0, 0, 0, 0, 0, length, 0)
-            self.create_booking(teacher_info, studio_id, the_mod, start_datetime, end_time)
+            the_start_time = datetime.time(start_hour, start_min, 0)
+            the_end_time = datetime.time(end_hour, end_min, 0)
+            start_datetime = datetime.datetime.combine(the_date, the_start_time)
+            end_datetime = datetime.datetime.combine(the_date, the_end_time)
+            # end_time = start_datetime + datetime.timedelta(0, 0, 0, 0, 0, length, 0)
+            self.create_booking(teacher_info, studio_id, the_mod, start_datetime, end_datetime)

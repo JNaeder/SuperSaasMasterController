@@ -7,14 +7,17 @@ from add_bookings_repeating import TeacherBooking
 
 
 class StudentClass:
-    def __init__(self, student_id, full_name, icr, gpa, mod, saas_id="", the_credits=""):
+    def __init__(self, student_id, proper_name, icr, gpa, mod, saas_id="", the_credits=""):
         self._student_id = student_id
-        self._full_name = full_name
+        self._proper_name = proper_name
         self._icr = icr
         self._gpa = gpa
         self._mod = mod
         self._saas_id = saas_id
         self._credits = the_credits
+        self._last_name = self._proper_name.split(', ')[0]
+        self._first_name = self._proper_name.split(', ')[1]
+        self._full_name = f"{self._first_name} {self._last_name}"
 
     def __repr__(self):
         output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod}" \
@@ -26,6 +29,12 @@ class StudentClass:
 
     def get_full_name(self):
         return self._full_name
+
+    def get_proper_name(self):
+        return self._proper_name
+
+    def get_last_name(self):
+        return self._last_name
 
     def get_icr(self):
         return self._icr
@@ -80,11 +89,10 @@ class GoogleSheets:
         self._log_book = None
         # ICR/GPA of Values
         self._students_ids = None
-        self._student_full_names = None
         self._icrs = None
         self._gpas = None
         # All Active Values
-        self._all_active_names = None
+        self._all_active_proper_name = None
         self._all_active_student_id = None
         self._all_active_mod = None
         # Grads Values
@@ -113,11 +121,10 @@ class GoogleSheets:
         icr_gpa_worksheet = main_spreadsheet.worksheet("Running GPA and ICR")
         # ICR/GPA of Values
         self._students_ids = icr_gpa_worksheet.col_values(1)
-        self._student_full_names = icr_gpa_worksheet.col_values(2)
         self._icrs = icr_gpa_worksheet.col_values(3)
         self._gpas = icr_gpa_worksheet.col_values(4)
         # All Active Values
-        self._all_active_names = all_active_worksheet.col_values(1)
+        self._all_active_proper_name = all_active_worksheet.col_values(1)
         self._all_active_student_id = all_active_worksheet.col_values(2)
         self._all_active_mod = all_active_worksheet.col_values(3)
         # Grads Values
@@ -127,8 +134,8 @@ class GoogleSheets:
         self._preferred_name_real = preferred_name_sheet.col_values(1)
         self._preferred_name_preferred = preferred_name_sheet.col_values(2)
 
-    def get_student_object_from_id(self, student_id):
-        full_name = ""
+    def get_student_object_from_id(self, student_id, the_name="", email_end=""):
+        proper_name = ""
         icr = 0.0
         gpa = 0.0
         mod = ""
@@ -139,7 +146,6 @@ class GoogleSheets:
                 if self._students_ids[index] == student_id:
                     icr = float(self._icrs[index][0:-1])
                     gpa = float(self._gpas[index])
-                    full_name = self._student_full_names[index]
             # Loop through all the IDs in the Active Sheet
             for index in range(len(self._all_active_student_id)):
                 if self._all_active_student_id[index] == student_id:
@@ -149,25 +155,30 @@ class GoogleSheets:
                         gpa = "-"
                     else:
                         mod = "Mod " + self._all_active_mod[index][4]
+                        proper_name = self._all_active_proper_name[index]
             # Checking for preferred names
             for index in range(len(self._preferred_name_real)):
-                if self._preferred_name_real[index] == full_name:
-                    full_name = self._preferred_name_preferred[index]
+                if self._preferred_name_real[index] == proper_name:
+                    proper_name = self._preferred_name_preferred[index]
             # Create new Student object
-            new_student = StudentClass(student_id, full_name, icr, gpa, mod)
+            new_student = StudentClass(student_id, proper_name, icr, gpa, mod)
             return new_student
         # Check if student ID is in the Grad sheet
         elif student_id in self._grads_student_ids:
             for index in range(1, len(self._grads_student_ids)):
                 if self._grads_student_ids[index] == student_id:
-                    full_name = self._grad_full_names[index]
+                    proper_name = self._grad_full_names[index]
                     mod = "Graduate"
             for index in range(len(self._preferred_name_real)):
-                if self._preferred_name_real[index] == full_name:
-                    full_name = self._preferred_name_preferred[index]
-            new_student = StudentClass(student_id, full_name, "-", "-", mod)
+                if self._preferred_name_real[index] == proper_name:
+                    proper_name = self._preferred_name_preferred[index]
+            new_student = StudentClass(student_id, proper_name, "-", "-", mod)
             return new_student
-
+        # Check if they have a student email. Make empty student object with it.
+        elif email_end != "sae.edu":
+            proper_name = f"{the_name.split(' ')[1]}, {the_name.split(' ')[0]}"
+            new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE")
+            return new_student
         return None
 
     def log_to_log_book(self, student_object, the_log):
@@ -229,7 +240,7 @@ class SuperSaasController:
     def get_student_holder(self):
         return self._student_holder
 
-    def set_repeating_bookings(self, the_name, the_mod, the_studio, start_time, length_time, start_date, end_date):
+    def set_repeating_bookings(self, the_name, the_mod, the_studio, start_time, end_time, start_date, end_date):
         s_date = [int(date) for date in start_date.split("/")]
         e_date = [int(date) for date in end_date.split("/")]
         s_month, s_day, s_year = s_date
@@ -238,7 +249,7 @@ class SuperSaasController:
         the_end_date = datetime.datetime(e_year, e_month, e_day)
         list_of_dates = self._teacher_booking.get_list_of_dates_for_term(the_start_date, the_end_date)
         self._teacher_booking.create_repeating_bookings(the_name, the_studio, the_mod, start_time,
-                                                        length_time, list_of_dates)
+                                                        end_time, list_of_dates)
 
     def get_all_info(self):
         self.read_json_data()
@@ -267,7 +278,9 @@ class SuperSaasController:
             student_id = user.__getattribute__("name").split(".")[0]
             supersaas_id = user.__getattribute__("id")
             ss_credit = user.__getattribute__("credit")
-            new_student = self._google_sheets.get_student_object_from_id(student_id)
+            the_name = user.__getattribute__("full_name")
+            email_end = user.__getattribute__("name").split("@")[1]
+            new_student = self._google_sheets.get_student_object_from_id(student_id, the_name, email_end)
             if new_student is not None:
                 new_student.set_saas_id(supersaas_id)
                 new_student.set_credits(ss_credit)
@@ -294,10 +307,11 @@ class SuperSaasController:
 
     def booking_is_valid(self, student_id, booked_room):
         student_object = self._google_sheets.get_student_object_from_id(student_id)
+        name = student_object.get_full_name()
         if student_object.get_mod() == "Graduate":
             return True
         student_mod = int(student_object.get_mod()[-1])
-        if booked_room == "S6" and student_mod < 4:
+        if booked_room == "Avid S6" and student_mod < 4:
             return False
         if booked_room == "SSL" and student_mod < 3:
             return False
@@ -419,6 +433,13 @@ class SuperSaasController:
                 correct_mod = student_object.get_mod()
                 correct_name = student_object.get_full_name()
                 correct_student_id = student_object.get_student_id()
+
+                # Checks to see if student is allowed to make the booking.
+                if not self.booking_is_valid(student_id, booked_room):
+                    booking_time = datetime.datetime.fromisoformat(booking_start_time)
+                    log = f"***BOOKING NOT ALLOWED***: {correct_name} in {correct_mod} booked the {booked_room} " \
+                          f"on {booking_time.strftime('%A %m/%d at %H:%M')}"
+                    self._app.print_output(log)
 
                 # Runs when the name of the booking doesn't match the name in the system
                 if correct_name != student_name:

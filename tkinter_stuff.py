@@ -180,7 +180,7 @@ class TeacherBookingScreen(tk.Toplevel):
         self.mod_selection_var = tk.StringVar()
         self.studio_selection_var = tk.StringVar()
         self.time_start_var = tk.StringVar()
-        self.time_length_var = tk.StringVar()
+        self.time_end_var = tk.StringVar()
         self.start_date_var = tk.StringVar()
         self.end_date_var = tk.StringVar()
 
@@ -198,12 +198,13 @@ class TeacherBookingScreen(tk.Toplevel):
         mod_selection['values'] = ("Mod 1", "Mod 2", "Mod 3", "Mod 4")
         studio_selection_label = ttk.Label(self, text="Studio: ")
         studio_selection = ttk.Combobox(self, textvariable=self.studio_selection_var, state="readonly")
-        studio_selection['values'] = ("SSL", "Audient", "Avid S6", "02R", "Production Suite 1", "Production Suite 2",
-                                      "Production Suite 3", "Production Suite 4")
+        # studio_selection['values'] = ("SSL", "Audient", "Avid S6", "02R", "Production Suite 1", "Production Suite 2",
+        #                               "Production Suite 3", "Production Suite 4")
+        studio_selection['values'] = list(self.controller.supersaas_controller.get_teacher_booking().get_resource_dict().keys())
         time_start_label = ttk.Label(self, text="Start Time: ")
         time_start_entry = ttk.Entry(self, textvariable=self.time_start_var)
-        time_length_label = ttk.Label(self, text="Booking Length: ")
-        time_length_entry = ttk.Entry(self, textvariable=self.time_length_var)
+        time_end_label = ttk.Label(self, text="End Time: ")
+        time_end_entry = ttk.Entry(self, textvariable=self.time_end_var)
         start_date_label = ttk.Label(self, text="Start Date: ")
         start_date_entry = ttk.Entry(self, textvariable=self.start_date_var)
         end_date_label = ttk.Label(self, text="End Date: ")
@@ -219,8 +220,8 @@ class TeacherBookingScreen(tk.Toplevel):
         studio_selection.grid(row=2, column=1)
         time_start_label.grid(row=3, column=0)
         time_start_entry.grid(row=3, column=1)
-        time_length_label.grid(row=4, column=0)
-        time_length_entry.grid(row=4, column=1)
+        time_end_label.grid(row=4, column=0)
+        time_end_entry.grid(row=4, column=1)
         start_date_label.grid(row=5, column=0)
         start_date_entry.grid(row=5, column=1)
         end_date_label.grid(row=6, column=0)
@@ -236,12 +237,12 @@ class TeacherBookingScreen(tk.Toplevel):
         the_name = self.name_selection_var.get()
         the_mod = int(self.mod_selection_var.get()[4])
         the_studio = self.studio_selection_var.get()
-        start_time = int(self.time_start_var.get())
-        length_time = int(self.time_length_var.get())
+        start_time = float(self.time_start_var.get())
+        end_time = int(self.time_end_var.get())
         start_date = self.start_date_var.get()
         end_date = self.end_date_var.get()
         self.controller.supersaas_controller.set_repeating_bookings(the_name, the_mod, the_studio, start_time,
-                                                                    length_time, start_date, end_date)
+                                                                    end_time, start_date, end_date)
         self.controller.print_output(f"Booked {the_studio} for {the_name}, from {start_date} to {end_date}")
         self.destroy()
 
@@ -252,6 +253,7 @@ class StudentListScreen(tk.Toplevel):
         self.controller = container
         self.title("Student List")
         self.geometry("700x600")
+        self.resizable(False, False)
         self.config(background=self.controller.background_color)
 
         self.the_frame = tk.Frame(self, height=600)
@@ -262,7 +264,8 @@ class StudentListScreen(tk.Toplevel):
         self.scroll_bar = ttk.Scrollbar(self, orient="vertical", command=self.the_canvas.yview)
 
         self.scrollable_frame = ttk.Frame(self.the_canvas, padding=10)
-        self.scrollable_frame.bind("<Configure>", lambda e: self.the_canvas.configure(scrollregion=self.the_canvas.bbox("all")))
+        self.scrollable_frame.bind("<Configure>",
+                                   lambda e: self.the_canvas.configure(scrollregion=self.the_canvas.bbox("all")))
         # self.scrollable_frame.columnconfigure(0, weight=1)
 
         self.the_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
@@ -293,7 +296,9 @@ class StudentListScreen(tk.Toplevel):
             the_credits = student_object.get_credits()
             background_color = "#3f7343"
 
-            if the_credits == "0":
+            if mod == "NOT ACTIVE":
+                background_color = self.controller.background_color
+            elif the_credits == "0":
                 background_color = "#aa0808"
             elif mod == "Graduate":
                 background_color = "#3f5473"
@@ -305,7 +310,8 @@ class StudentListScreen(tk.Toplevel):
             mod_label = ttk.Label(info_frame, text=mod, font=("Arial", 10), background=background_color)
             icr_label = ttk.Label(info_frame, text=f"ICR: {icr}%", font=("Arial", 10), background=background_color)
             gpa_label = ttk.Label(info_frame, text=f"GPA: {gpa}", font=("Arial", 10), background=background_color)
-            credit_label = ttk.Label(info_frame, text=f"Credits: {the_credits}", font=("Arial", 10), background=background_color)
+            credit_label = ttk.Label(info_frame, text=f"Credits: {the_credits}", font=("Arial", 10),
+                                     background=background_color)
 
             name_label.grid(row=index, column=0, sticky="ew", padx=50, pady=5)
             mod_label.grid(row=index, column=1, sticky="ew", ipadx=5)
