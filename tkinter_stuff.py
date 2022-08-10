@@ -200,7 +200,8 @@ class TeacherBookingScreen(tk.Toplevel):
         studio_selection = ttk.Combobox(self, textvariable=self.studio_selection_var, state="readonly")
         # studio_selection['values'] = ("SSL", "Audient", "Avid S6", "02R", "Production Suite 1", "Production Suite 2",
         #                               "Production Suite 3", "Production Suite 4")
-        studio_selection['values'] = list(self.controller.supersaas_controller.get_teacher_booking().get_resource_dict().keys())
+        studio_selection['values'] =\
+            list(self.controller.supersaas_controller.get_teacher_booking().get_resource_dict().keys())
         time_start_label = ttk.Label(self, text="Start Time: ")
         time_start_entry = ttk.Entry(self, textvariable=self.time_start_var)
         time_end_label = ttk.Label(self, text="End Time: ")
@@ -279,17 +280,14 @@ class StudentListScreen(tk.Toplevel):
 
     @staticmethod
     def get_key(some_object):
-        return some_object.get_full_name().split(" ")[-1]
+        return some_object.get_last_name()
 
     def show_list(self):
         list_of_students = self.controller.supersaas_controller.get_student_holder().get_list_of_student_objects()
         list_of_students.sort(key=self.get_key)
         for index in range(len(list_of_students)):
             student_object = list_of_students[index]
-            full_name = student_object.get_full_name()
-            last_name = full_name.split(" ")[-1]
-            first_name = full_name.split(" ")[0]
-            formal_name = f"{last_name}, {first_name}"
+            formal_name = student_object.get_proper_name()
             mod = student_object.get_mod()
             icr = student_object.get_icr()
             gpa = student_object.get_gpa()
@@ -312,12 +310,38 @@ class StudentListScreen(tk.Toplevel):
             gpa_label = ttk.Label(info_frame, text=f"GPA: {gpa}", font=("Arial", 10), background=background_color)
             credit_label = ttk.Label(info_frame, text=f"Credits: {the_credits}", font=("Arial", 10),
                                      background=background_color)
+            profile_button = ttk.Button(info_frame, text="Profile",
+                                        command=lambda: self.open_profile_screen(student_object))
 
-            name_label.grid(row=index, column=0, sticky="ew", padx=50, pady=5)
-            mod_label.grid(row=index, column=1, sticky="ew", ipadx=5)
-            icr_label.grid(row=index, column=2, sticky="ew", ipadx=5)
-            gpa_label.grid(row=index, column=3, sticky="ew", ipadx=5)
-            credit_label.grid(row=index, column=4, sticky="ew", ipadx=5)
+            name_label.grid(row=0, column=0, sticky="ew", padx=50, pady=5)
+            mod_label.grid(row=0, column=1, sticky="ew", ipadx=5)
+            icr_label.grid(row=0, column=2, sticky="ew", ipadx=5)
+            gpa_label.grid(row=0, column=3, sticky="ew", ipadx=5)
+            credit_label.grid(row=0, column=4, sticky="ew", ipadx=5)
+            profile_button.grid(row=0, column=5, sticky="ew", ipadx=5)
+
+    def open_profile_screen(self, student_object):
+        profile_window = StudentProfileScreen(self.controller, student_object)
+        profile_window.mainloop()
+
+
+class StudentProfileScreen(tk.Toplevel):
+    def __init__(self, container, student_object):
+        super().__init__(container)
+        self.controller = container
+        # Setup
+        student_name = student_object.get_full_name()
+        student_id = student_object.get_student_id()
+        self.title(student_name)
+        self.config(background=self.controller.background_color)
+
+        # Widgets
+        full_name_title = ttk.Label(self, text=student_name, font=("Arial", 25))
+        student_id_label = ttk.Label(self, text=student_id, font=("Arial", 15))
+
+        # Layout
+        full_name_title.grid(row=0, column=0, sticky="ew", pady=10, padx=10)
+        student_id_label.grid(row=1, column=0, sticky="ew", pady=5)
 
 
 if __name__ == "__main__":
