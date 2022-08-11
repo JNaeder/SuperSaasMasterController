@@ -292,26 +292,26 @@ class StudentListScreen(tk.Toplevel):
             icr = student_object.get_icr()
             gpa = student_object.get_gpa()
             the_credits = student_object.get_credits()
-            background_color = "#3f7343"
+            self.background_color = "#3f7343"
 
             if mod == "NOT ACTIVE":
-                background_color = self.controller.background_color
+                self.background_color = self.controller.background_color
             elif the_credits == "0":
-                background_color = "#aa0808"
+                self.background_color = "#aa0808"
             elif mod == "Graduate":
-                background_color = "#3f5473"
+                self.background_color = "#3f5473"
 
-            info_frame = tk.LabelFrame(self.scrollable_frame, background=background_color)
+            info_frame = tk.LabelFrame(self.scrollable_frame, background=self.background_color)
             info_frame.grid(sticky="ew", pady=5)
 
-            name_label = ttk.Label(info_frame, text=formal_name, font=("Arial", 15), background=background_color)
-            mod_label = ttk.Label(info_frame, text=mod, font=("Arial", 10), background=background_color)
-            icr_label = ttk.Label(info_frame, text=f"ICR: {icr}%", font=("Arial", 10), background=background_color)
-            gpa_label = ttk.Label(info_frame, text=f"GPA: {gpa}", font=("Arial", 10), background=background_color)
+            name_label = ttk.Label(info_frame, text=formal_name, font=("Arial", 15), background=self.background_color)
+            mod_label = ttk.Label(info_frame, text=mod, font=("Arial", 10), background=self.background_color)
+            icr_label = ttk.Label(info_frame, text=f"ICR: {icr}%", font=("Arial", 10), background=self.background_color)
+            gpa_label = ttk.Label(info_frame, text=f"GPA: {gpa}", font=("Arial", 10), background=self.background_color)
             credit_label = ttk.Label(info_frame, text=f"Credits: {the_credits}", font=("Arial", 10),
-                                     background=background_color)
+                                     background=self.background_color)
             profile_button = ttk.Button(info_frame, text="Profile",
-                                        command=lambda: self.open_profile_screen(student_object))
+                                        command=lambda e=student_object, a=self.background_color: self.open_profile_screen(e, a))
 
             name_label.grid(row=0, column=0, sticky="ew", padx=50, pady=5)
             mod_label.grid(row=0, column=1, sticky="ew", ipadx=5)
@@ -320,28 +320,52 @@ class StudentListScreen(tk.Toplevel):
             credit_label.grid(row=0, column=4, sticky="ew", ipadx=5)
             profile_button.grid(row=0, column=5, sticky="ew", ipadx=5)
 
-    def open_profile_screen(self, student_object):
-        profile_window = StudentProfileScreen(self.controller, student_object)
+    def open_profile_screen(self, student_object, background_color):
+        profile_window = StudentProfileScreen(self.controller, student_object, background_color)
+        profile_window.columnconfigure(0, weight=1)
         profile_window.mainloop()
 
 
 class StudentProfileScreen(tk.Toplevel):
-    def __init__(self, container, student_object):
+    def __init__(self, container, student_object, color):
         super().__init__(container)
         self.controller = container
-        # Setup
+        # Variables
         student_name = student_object.get_full_name()
         student_id = student_object.get_student_id()
+        the_mod = student_object.get_mod()
+        the_icr = student_object.get_icr()
+        the_gpa = student_object.get_gpa()
+        the_credits = student_object.get_credits()
+        # Setup
         self.title(student_name)
-        self.config(background=self.controller.background_color)
+        self.config(background=color, padx=30, pady=10)
+        inner_frame = ttk.Frame(self)
+        inner_frame.config(padding=20)
+        inner_frame.grid(sticky="nsew")
 
         # Widgets
-        full_name_title = ttk.Label(self, text=student_name, font=("Arial", 25))
-        student_id_label = ttk.Label(self, text=student_id, font=("Arial", 15))
+        full_name_title = ttk.Label(inner_frame, text=student_name, font=("Arial", 25), anchor="center")
+        student_id_title = ttk.Label(inner_frame, text=student_id, font=("Arial", 15), anchor="center")
+        mod_title = ttk.Label(inner_frame, text=the_mod, font=("Arial", 15), anchor="center")
+        icr_info = ttk.Label(inner_frame, text=f"ICR: {the_icr}", anchor="center")
+        gpa_info = ttk.Label(inner_frame, text=f"GPA: {the_gpa}", anchor="center")
+        credit_info = ttk.Label(inner_frame, text=f"Credits: {the_credits}", anchor="center")
+        agenda_button = ttk.Button(inner_frame, text="Agenda")
+        delete_button = ttk.Button(inner_frame, text="Delete User")
+        block_button = ttk.Button(inner_frame, text="Block User")
 
         # Layout
-        full_name_title.grid(row=0, column=0, sticky="ew", pady=10, padx=10)
-        student_id_label.grid(row=1, column=0, sticky="ew", pady=5)
+        full_name_title.grid(row=0, column=0, sticky="ew")
+        student_id_title.grid(row=1, column=0, sticky="ew")
+        mod_title.grid(row=2, column=0, sticky="ew")
+        icr_info.grid(row=3, column=0, sticky="ew")
+        gpa_info.grid(row=4, column=0, sticky="ew")
+        credit_info.grid(row=5, column=0, sticky="ew")
+        agenda_button.grid(row=6, column=0, ipadx=10, ipady=10)
+        delete_button.grid(row=7, column=0, ipadx=10, ipady=10)
+        block_button.grid(row=8, column=0, ipadx= 10, ipady=10)
+
 
 
 if __name__ == "__main__":

@@ -1,4 +1,7 @@
 1- Settings screen, we can change the icr/gpa from the GUI
 2- Today's Booking Screen - Show/No Show buttons
 3- Add buttons to the student list page, that shows a student profile screen
-4- Student Profile Screen, where you can block/delete them
+4- Student Profile Screen
+    - Get a way to get agenda from student
+    - Block a student placeholder
+    - Delete a student placeholder
