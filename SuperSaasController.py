@@ -15,9 +15,18 @@ class StudentClass:
         self._mod = mod
         self._saas_id = saas_id
         self._credits = the_credits
-        self._last_name = self._proper_name.split(', ')[0]
-        self._first_name = self._proper_name.split(', ')[1]
+        self._last_name = ""
+        self._first_name = ""
+        self.set_full_names()
         self._full_name = f"{self._first_name} {self._last_name}"
+
+    def set_full_names(self):
+        split_name = self._proper_name.split(", ")
+        if len(split_name) > 1:
+            self._last_name = split_name[0]
+            self._first_name = split_name[1]
+        else:
+            self._first_name = self._proper_name
 
     def __repr__(self):
         output = f"{self._full_name} ({self._student_id}) GPA: {self._gpa} ICR: {self._icr} {self._mod}" \
