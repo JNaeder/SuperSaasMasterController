@@ -176,7 +176,11 @@ class GoogleSheets:
             return new_student
         # Check if they have a student email. Make empty student object with it.
         elif email_end != "sae.edu":
-            proper_name = f"{the_name.split(' ')[1]}, {the_name.split(' ')[0]}"
+            name_split = the_name.split(" ")
+            if len(name_split) > 2:
+                proper_name = f"{the_name.split(' ')[1]}, {the_name.split(' ')[0]}"
+            else:
+                proper_name = the_name
             new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE")
             return new_student
         return None
@@ -449,7 +453,7 @@ class SuperSaasController:
                     }
                     self._client.appointments.update(self._schedule_id, booking_id, attributes)
                     booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                    log = f"{correct_name}'s name has been updated for {booked_room} booking for" \
+                    log = f"{correct_name}'s name has been updated for {booked_room} booking for " \
                           f"{booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name}) "
                     self.increase_number_of_changes()
                     self._app.print_output(log)
@@ -464,7 +468,7 @@ class SuperSaasController:
                     try:
                         self._client.appointments.update(self._schedule_id, booking_id, attributes)
                         booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                        log = f"{correct_name}'s Mod has been updated for {booked_room} booking for" \
+                        log = f"{correct_name}'s Mod has been updated for {booked_room} booking for " \
                               f"{booking_time.strftime('%A %m/%d')}"
                         self.increase_number_of_changes()
                         self._app.print_output(log)
