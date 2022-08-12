@@ -5,6 +5,7 @@ from tkinter import ttk
 from SuperSaasController import SuperSaasController
 import webbrowser
 from PIL import Image, ImageTk
+from SettingsScreen import SettingsScreen
 
 
 class App(tk.Tk):
@@ -96,22 +97,25 @@ class ButtonFrames(ttk.Frame):
         open_web_pages_button = ttk.Button(self, text="Open Web Pages", command=self.open_web_pages)
         teacher_booking_button = ttk.Button(self, text="Teacher Booking", command=self.open_teacher_booking_page)
         student_list_button = ttk.Button(self, text="Student List", command=self.open_student_list_page)
+        settings_button = ttk.Button(self, text="Settings", command=self.open_settings_page)
         # Layout
-        get_number_users_button.grid(row=0, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        go_through_users_button.grid(row=0, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_number_of_bookings_button.grid(row=1, column=0, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5,
+        get_number_users_button.grid(row=0, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        go_through_users_button.grid(row=0, column=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        get_number_of_bookings_button.grid(row=1, column=0, sticky="ew", ipady=10, ipadx=10, pady=5,
                                            padx=5)
-        go_through_bookings_button.grid(row=1, column=2, columnspan=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        go_through_bookings_button.grid(row=1, column=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
 
-        get_info_button.grid(row=2, column=1, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        get_info_button.grid(row=2, column=0, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
         open_web_pages_button.grid(row=2, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
-        teacher_booking_button.grid(row=3, column=1, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        teacher_booking_button.grid(row=3, column=0, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
         student_list_button.grid(row=3, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        settings_button.grid(row=0, column=3, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
 
         for button in self.winfo_children():
             self.set_button_states(button)
         get_info_button['state'] = "normal"
         open_web_pages_button['state'] = "normal"
+        settings_button['state'] = "normal"
 
     def set_button_states(self, button):
         if not self.controller.supersaas_controller.info_is_there():
@@ -168,6 +172,11 @@ class ButtonFrames(ttk.Frame):
         student_list_page.columnconfigure(0, weight=1)
         student_list_page.rowconfigure(0, weight=1)
         student_list_page.mainloop()
+
+    def open_settings_page(self):
+        settings_page = SettingsScreen(self.controller)
+
+        settings_page.mainloop()
 
 
 class TeacherBookingScreen(tk.Toplevel):
@@ -334,9 +343,10 @@ class StudentProfileScreen(tk.Toplevel):
         student_name = student_object.get_full_name()
         student_id = student_object.get_student_id()
         the_mod = student_object.get_mod()
-        the_icr = student_object.get_icr()
+        the_icr = str(student_object.get_icr()) + "%"
         the_gpa = student_object.get_gpa()
         the_credits = student_object.get_credits()
+        the_class_schedule = student_object.get_class_schedule()
         # Setup
         self.title(student_name)
         self.config(background=color, padx=30, pady=10)
@@ -348,23 +358,21 @@ class StudentProfileScreen(tk.Toplevel):
         full_name_title = ttk.Label(inner_frame, text=student_name, font=("Arial", 25), anchor="center")
         student_id_title = ttk.Label(inner_frame, text=student_id, font=("Arial", 15), anchor="center")
         mod_title = ttk.Label(inner_frame, text=the_mod, font=("Arial", 15), anchor="center")
+        class_schedule_title = ttk.Label(inner_frame, text=the_class_schedule, font=("Arial", 15), anchor="center")
         icr_info = ttk.Label(inner_frame, text=f"ICR: {the_icr}", anchor="center")
         gpa_info = ttk.Label(inner_frame, text=f"GPA: {the_gpa}", anchor="center")
         credit_info = ttk.Label(inner_frame, text=f"Credits: {the_credits}", anchor="center")
         agenda_button = ttk.Button(inner_frame, text="Agenda")
-        delete_button = ttk.Button(inner_frame, text="Delete User")
-        block_button = ttk.Button(inner_frame, text="Block User")
 
         # Layout
         full_name_title.grid(row=0, column=0, sticky="ew")
         student_id_title.grid(row=1, column=0, sticky="ew")
         mod_title.grid(row=2, column=0, sticky="ew")
-        icr_info.grid(row=3, column=0, sticky="ew")
-        gpa_info.grid(row=4, column=0, sticky="ew")
-        credit_info.grid(row=5, column=0, sticky="ew")
-        agenda_button.grid(row=6, column=0, ipadx=10, ipady=10)
-        delete_button.grid(row=7, column=0, ipadx=10, ipady=10)
-        block_button.grid(row=8, column=0, ipadx= 10, ipady=10)
+        class_schedule_title.grid(row=3, column=0, sticky="ew")
+        icr_info.grid(row=4, column=0, sticky="ew")
+        gpa_info.grid(row=5, column=0, sticky="ew")
+        credit_info.grid(row=6, column=0, sticky="ew")
+        agenda_button.grid(row=7, column=0, ipadx=10, ipady=10)
 
 
 

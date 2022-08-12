@@ -7,18 +7,28 @@ from add_bookings_repeating import TeacherBooking
 
 
 class StudentClass:
-    def __init__(self, student_id, proper_name, icr, gpa, mod, saas_id="", the_credits=""):
+    def __init__(self, student_id, proper_name, icr, gpa, mod, class_schedule, saas_id="", the_credits=""):
         self._student_id = student_id
         self._proper_name = proper_name
         self._icr = icr
         self._gpa = gpa
         self._mod = mod
+        self._class_schedule = self.get_class_schedule_name(class_schedule)
         self._saas_id = saas_id
         self._credits = the_credits
         self._last_name = ""
         self._first_name = ""
         self.set_full_names()
         self._full_name = f"{self._first_name} {self._last_name}"
+
+    def get_class_schedule_name(self, schedule):
+        schedule_dict = {
+            "E": "EVE",
+            "A": "AM",
+            "P": "PM",
+            "-": "N/A"
+        }
+        return schedule_dict[schedule]
 
     def set_full_names(self):
         split_name = self._proper_name.split(", ")
@@ -53,6 +63,9 @@ class StudentClass:
 
     def get_mod(self):
         return self._mod
+
+    def get_class_schedule(self):
+        return self._class_schedule
 
     def set_saas_id(self, saas_id):
         self._saas_id = saas_id
@@ -148,6 +161,7 @@ class GoogleSheets:
         icr = 0.0
         gpa = 0.0
         mod = ""
+        class_schedule = ""
         # Check that ID from SuperSaas is in both academic sheets
         if student_id in self._students_ids and student_id in self._all_active_student_id:
             # Loop through all the IDs in the ICR Sheet
@@ -160,17 +174,16 @@ class GoogleSheets:
                 if self._all_active_student_id[index] == student_id:
                     if self._all_active_mod[index] == "#N/A":
                         mod = "Graduate"
-                        icr = "-"
-                        gpa = "-"
                     else:
                         mod = "Mod " + self._all_active_mod[index][4]
+                        class_schedule = self._all_active_mod[index][6]
                         proper_name = self._all_active_proper_name[index]
             # Checking for preferred names
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == proper_name:
                     proper_name = self._preferred_name_preferred[index]
             # Create new Student object
-            new_student = StudentClass(student_id, proper_name, icr, gpa, mod)
+            new_student = StudentClass(student_id, proper_name, icr, gpa, mod, class_schedule)
             return new_student
         # Check if student ID is in the Grad sheet
         elif student_id in self._grads_student_ids:
@@ -181,16 +194,16 @@ class GoogleSheets:
             for index in range(len(self._preferred_name_real)):
                 if self._preferred_name_real[index] == proper_name:
                     proper_name = self._preferred_name_preferred[index]
-            new_student = StudentClass(student_id, proper_name, "-", "-", mod)
+            new_student = StudentClass(student_id, proper_name, "-", "-", mod, "-")
             return new_student
         # Check if they have a student email. Make empty student object with it.
         elif email_end != "sae.edu":
             name_split = the_name.split(" ")
-            if len(name_split) > 2:
+            if len(name_split) >= 2:
                 proper_name = f"{the_name.split(' ')[1]}, {the_name.split(' ')[0]}"
             else:
                 proper_name = the_name
-            new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE")
+            new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE", "-")
             return new_student
         return None
 
@@ -402,7 +415,7 @@ class SuperSaasController:
                             }
                             self._client.users.update(supersaas_id_num, new_attributes)
                             student_object.set_credits("-")
-                    elif ss_credits != "0":
+                    if ss_credits != "0":
                         if not can_book:
                             if student_icr < self._icr_cutoff:
                                 log = f"{correct_full_name} is now below the {self._icr_cutoff}% " \
