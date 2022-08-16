@@ -314,7 +314,7 @@ class SuperSaasController:
 
     def set_all_bookings(self):
         date_today = datetime.datetime.combine(datetime.date.today(), datetime.datetime.min.time())
-        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=500,
+        self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=1000,
                                                             start_time=date_today)
 
     def get_all_users(self):
@@ -454,17 +454,23 @@ class SuperSaasController:
             booking_id = booking.__getattribute__("id")
             student_id = booking.__getattribute__("created_by").split(".")[0]
             student_object = self._student_holder.get_student_by_student_id(student_id)
+            booking_day = datetime.datetime.fromisoformat(booking.__getattribute__("start")).strftime("%A")
             # If student object exists
             if student_object is not None:
                 correct_mod = student_object.get_mod()
                 correct_name = student_object.get_full_name()
                 correct_student_id = student_object.get_student_id()
 
-                # Checks to see if student is allowed to make the booking.
+                # Checks to see if student is allowed to make the booking. Only displays warning message.
                 if not self.booking_is_valid(student_id, booked_room):
                     booking_time = datetime.datetime.fromisoformat(booking_start_time)
                     log = f"***BOOKING NOT ALLOWED***: {correct_name} in {correct_mod} booked the {booked_room} " \
                           f"on {booking_time.strftime('%A %m/%d at %H:%M')}"
+                    self._app.print_output(log)
+                # Checks to see if graduate is only booking on a Friday. Only displays warning message.
+                if correct_mod == "Graduate" and booking_day != "Friday":
+                    log = f"***BOOKING NOT ALLOWED***: {correct_name} who is a {correct_mod} " \
+                          f"is only allowed to book on Friday"
                     self._app.print_output(log)
 
                 # Runs when the name of the booking doesn't match the name in the system
