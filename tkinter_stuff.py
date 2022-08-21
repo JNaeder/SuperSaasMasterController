@@ -11,41 +11,31 @@ from SettingsScreen import SettingsScreen
 class App(tk.Tk):
     def __init__(self, sscontrol):
         super().__init__()
-        # Display Variables
-        self.background_color = "#292929"
+        self.config(background="#292929")
         # Value Variables
         self.output_value = tk.StringVar()
         # Outside Objects
         self.supersaas_controller = sscontrol
-        # Style
-        style = ttk.Style(self)
-        # print(style.theme_names())
-        style.theme_use("default")
-        # print(style.theme_use())
-        style.configure("TFrame", background=self.background_color)
-        # style.configure("TButton", background=self.background_color, font=("Arial", 12))
-        style.configure("TLabel", background=self.background_color, foreground="white")
-        style.configure("TCheckbutton", background=self.background_color, foreground="white")
-        # print(style.layout("TCheckbutton"))
-        # print(style.element_options("Checkbutton.label"))
-        # print(style.lookup("TCheckbutton", "text"))
+
         # Setup
         self.title("SAE NYC Booking Manager")
-        self.resizable(False, False)
-        self.config(background=self.background_color)
+        # self.resizable(False, False)
+        self.width, self.height = self.winfo_screenwidth(), self.winfo_screenheight()
+        # self.geometry(f"{self.width}x{self.height}")
+        self.attributes("-fullscreen", True)
+        self.style = StyleClass(self)
+
         # Frames
         title_frame = TitleFrame(self)
         self.output_screen = OutputScreen(self)
         self.output_screen.columnconfigure(0, weight=1)
-        buttons_frame = ButtonFrames(self)
-        # Layouts
+        self.buttons_frame = ButtonFrames(self)
+        # Layout
+        self.grid_columnconfigure(0, weight=1)
+
         title_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=10, padx=10)
-        title_frame.columnconfigure(1, weight=1)
-        title_frame.columnconfigure(0, weight=1)
         self.output_screen.grid(row=1, column=0, sticky="ew", padx=10, pady=10)
-        buttons_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
-        # buttons_frame.columnconfigure(0, weight=1)
-        # buttons_frame.columnconfigure(1, weight=1)
+        self.buttons_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
 
         self.print_output("Welcome to SAE NYC Booking Manager.")
 
@@ -53,28 +43,106 @@ class App(tk.Tk):
         self.output_screen.print_output(output_text)
 
 
-class TitleFrame(ttk.Frame):
-    def __init__(self, container):
+class StyleClass(ttk.Style):
+    def __init__(self, container: App):
         super().__init__(container)
-        global logo
+
+        background_white = "#FFFFFF"
+        background_dark = "#292929"
+        # sae_blue = "#307FE2"
+        # sae_teal = "#00B0B9"
+        # sae_red = "#EE2737"
+        # sae_yellow = "#FFB500"
+        # sae_light_blue = "#58c9e6"
+
+        self.theme_use("default")
+
+        self.configure("TFrame", background=background_dark)
+        self.configure("TLabel", background=background_dark, foreground="white")
+        self.configure("TButton", background=background_white, foreground=background_dark, relief="solid", borderwidth=2)
+        self.configure("Title.TButton", background=background_dark, relief="flat")
+        self.configure("Big.TButton", background=background_white, font=("Arial", 25), foreground=background_dark, relief="solid", borderwidth=2)
+
+
+# noinspection PyGlobalUndefined,PyTypeChecker
+class TitleFrame(ttk.Frame):
+    def __init__(self, container: App):
+        super().__init__(container)
+        global logo, settings_icon_image, web_icon_image, refresh_icon_image
+        self.controller = container
         # Variables
         logo = ImageTk.PhotoImage(Image.open("imgs/Transparent Smaller.png").resize(size=(128, 128)))
+        settings_icon_image = ImageTk.PhotoImage(Image.open("imgs/settings.png").resize(size=(64, 64)))
+        web_icon_image = ImageTk.PhotoImage(Image.open("imgs/internet.png").resize(size=(64, 64)))
+        refresh_icon_image = ImageTk.PhotoImage(Image.open("imgs/refresh.png").resize(size=(64, 64)))
 
         # Widgets
-        logo_label = ttk.Label(self, image=logo, background=container.background_color, padding=(50, 0, 50, 0))
+        logo_label = ttk.Label(self, image=logo, padding=(50, 0, 50, 0))
         title_label = ttk.Label(self, text="SAE NYC Booking Manager", foreground="White", font=("Arial", 35))
 
+        info_frame = ttk.Frame(self)
+        self.users_num = ttk.Label(info_frame, text="- Users", font=("Arial", 15))
+        self.bookings_num = ttk.Label(info_frame, text="- Bookings", font=("Arial", 15))
+
+        button_frame = ttk.Frame(self)
+        settings_icon = ttk.Button(button_frame, image=settings_icon_image, command=self.open_settings_page, style="Title.TButton")
+        web_icon = ttk.Button(button_frame, image=web_icon_image, command=self.open_web_pages, style="Title.TButton")
+        refresh_icon = ttk.Button(button_frame, image=refresh_icon_image, command=self.get_all_info, style="Title.TButton")
+
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(3, weight=1)
+
         # Layout
-        logo_label.grid(row=0, column=0)
-        title_label.grid(row=0, column=1, sticky="ew")
+        logo_label.grid(row=0, column=0, sticky="e")
+        title_label.grid(row=0, column=1, sticky="w")
+
+        info_frame.grid(row=0, column=2, sticky="ew")
+        self.users_num.grid(row=0, column=0, padx=10)
+        self.bookings_num.grid(row=0, column=1, padx=10)
+
+        button_frame.grid(row=0, column=3, sticky="ew")
+        settings_icon.grid(row=0, column=0, padx=5)
+        web_icon.grid(row=0, column=1, padx=5)
+        refresh_icon.grid(row=0, column=2, padx=5)
+
+    def open_settings_page(self):
+        settings_page = SettingsScreen(self.controller)
+        settings_page.mainloop()
+
+    def open_web_pages(self):
+        webbrowser.open(
+            "https://docs.google.com/spreadsheets/d/17IIW21BzwSirT5g53Un9oYEZUSB0CaRmS55f9ur8n94/edit#gid=1026026296")
+        webbrowser.open("https://supersaas.com/schedule/SAE_New_York/5th_Floor_Booking")
+        self.controller.print_output("Web pages open")
+
+    def get_all_info(self):
+        start_time = time.perf_counter()
+        self.controller.supersaas_controller.get_all_info()
+        end_time = time.perf_counter() - start_time
+        self.controller.print_output(f"Retrieved all student info in {end_time:.2f} seconds")
+        button_frame = self.controller.buttons_frame
+        for button in button_frame.winfo_children():
+            button_frame.set_button_states(button)
+        self.users_num["text"] = f"{self.get_number_of_users()} Users"
+        self.bookings_num["text"] = f"{self.get_number_of_bookings()} Bookings"
+
+    def get_number_of_users(self):
+        user_num = self.controller.supersaas_controller.get_number_of_current_users()
+        return user_num
+
+    def get_number_of_bookings(self):
+        booking_num = self.controller.supersaas_controller.get_number_of_current_bookings()
+        return booking_num
 
 
 class OutputScreen(ttk.Frame):
-    def __init__(self, container):
+    def __init__(self, container: App):
         super().__init__(container)
-        self.screen = tk.Text(self, height=20, width=100, background=container.background_color, state="disabled",
-                              font=("Arial", 15), foreground="white", wrap="word")
-        self.screen.grid(sticky="ew")
+        self.screen = tk.Text(self, state="disabled",
+                              font=("Arial", 15), wrap="word")
+        self.screen.grid(sticky="nsew")
 
     def print_output(self, output_text):
         self.screen.config(state="normal")
@@ -89,33 +157,23 @@ class ButtonFrames(ttk.Frame):
         super().__init__(container)
         self.controller = container
         # Buttons
-        get_number_users_button = ttk.Button(self, text="Get # of Users", command=self.get_number_of_users)
-        go_through_users_button = ttk.Button(self, text="Go Through Users", command=self.go_through_all_users)
-        get_number_of_bookings_button = ttk.Button(self, text="Get # of Bookings", command=self.get_number_of_bookings)
-        go_through_bookings_button = ttk.Button(self, text="Go Through Bookings", command=self.go_through_all_bookings)
-        get_info_button = ttk.Button(self, text="Get All Info", command=self.get_all_info)
-        open_web_pages_button = ttk.Button(self, text="Open Web Pages", command=self.open_web_pages)
-        teacher_booking_button = ttk.Button(self, text="Teacher Booking", command=self.open_teacher_booking_page)
-        student_list_button = ttk.Button(self, text="Student List", command=self.open_student_list_page)
-        settings_button = ttk.Button(self, text="Settings", command=self.open_settings_page)
+        go_through_users_button = ttk.Button(self, text="Go Through Users", command=self.go_through_all_users, style="Big.TButton")
+        go_through_bookings_button = ttk.Button(self, text="Go Through Bookings", command=self.go_through_all_bookings, style="Big.TButton")
+        teacher_booking_button = ttk.Button(self, text="Teacher Booking", command=self.open_teacher_booking_page, style="Big.TButton")
+        student_list_button = ttk.Button(self, text="Student List", command=self.open_student_list_page, style="Big.TButton")
         # Layout
-        get_number_users_button.grid(row=0, column=0, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        go_through_users_button.grid(row=0, column=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
-        get_number_of_bookings_button.grid(row=1, column=0, sticky="ew", ipady=10, ipadx=10, pady=5,
-                                           padx=5)
-        go_through_bookings_button.grid(row=1, column=2, sticky="ew", ipady=10, ipadx=10, pady=5, padx=5)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(3, weight=1)
 
-        get_info_button.grid(row=2, column=0, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
-        open_web_pages_button.grid(row=2, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
-        teacher_booking_button.grid(row=3, column=0, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
-        student_list_button.grid(row=3, column=2, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
-        settings_button.grid(row=0, column=3, ipadx=50, ipady=5, sticky="ew", padx=5, pady=5)
+        go_through_users_button.grid(row=0, column=0, sticky="ew", padx=10, pady=10, ipady=10)
+        go_through_bookings_button.grid(row=0, column=1, sticky="ew", padx=10, pady=10, ipady=10)
+        teacher_booking_button.grid(row=0, column=2, sticky="ew", padx=10, pady=10, ipady=10)
+        student_list_button.grid(row=0, column=3, sticky="ew", padx=10, pady=10, ipady=10)
 
         for button in self.winfo_children():
             self.set_button_states(button)
-        get_info_button['state'] = "normal"
-        open_web_pages_button['state'] = "normal"
-        settings_button['state'] = "normal"
 
     def set_button_states(self, button):
         if not self.controller.supersaas_controller.info_is_there():
@@ -123,24 +181,12 @@ class ButtonFrames(ttk.Frame):
         else:
             button['state'] = "normal"
 
-    def get_number_of_users(self):
-        start_time = time.perf_counter()
-        user_num = self.controller.supersaas_controller.get_number_of_current_users()
-        end_time = time.perf_counter() - start_time
-        self.controller.print_output(f"There are {str(user_num)} current Users. - {end_time:.2f} seconds")
-
     def go_through_all_users(self):
         start_time = time.perf_counter()
         self.controller.supersaas_controller.go_through_all_users()
         end_time = time.perf_counter() - start_time
         num_changes = self.controller.supersaas_controller.get_number_of_changes()
         self.controller.print_output(f"Done Processing Users - {num_changes} changes. - {end_time:.2f} seconds")
-
-    def get_number_of_bookings(self):
-        start_time = time.perf_counter()
-        booking_num = self.controller.supersaas_controller.get_number_of_current_bookings()
-        end_time = time.perf_counter() - start_time
-        self.controller.print_output(f"There are {booking_num} current bookings. - {end_time:.2f} seconds")
 
     def go_through_all_bookings(self):
         start_time = time.perf_counter()
@@ -157,12 +203,6 @@ class ButtonFrames(ttk.Frame):
         for button in self.winfo_children():
             self.set_button_states(button)
 
-    def open_web_pages(self):
-        webbrowser.open(
-            "https://docs.google.com/spreadsheets/d/17IIW21BzwSirT5g53Un9oYEZUSB0CaRmS55f9ur8n94/edit#gid=1026026296")
-        webbrowser.open("https://supersaas.com/schedule/SAE_New_York/5th_Floor_Booking")
-        self.controller.print_output("Web pages open")
-
     def open_teacher_booking_page(self):
         teacher_booking_page = TeacherBookingScreen(self.controller)
         teacher_booking_page.mainloop()
@@ -173,16 +213,13 @@ class ButtonFrames(ttk.Frame):
         student_list_page.rowconfigure(0, weight=1)
         student_list_page.mainloop()
 
-    def open_settings_page(self):
-        settings_page = SettingsScreen(self.controller)
 
-        settings_page.mainloop()
-
-
+# noinspection PyTypeChecker
 class TeacherBookingScreen(tk.Toplevel):
     def __init__(self, container):
         super().__init__(container)
         self.controller = container
+        self.configure(background="#292929")
 
         # Text Variables
         self.name_selection_var = tk.StringVar()
@@ -195,7 +232,7 @@ class TeacherBookingScreen(tk.Toplevel):
 
         # Setup
         self.title("Teacher Booking")
-        self.config(background=self.controller.background_color, padx=50, pady=50)
+        self.config(padx=50, pady=50)
         self.resizable(False, False)
 
         # Widgets
@@ -209,7 +246,7 @@ class TeacherBookingScreen(tk.Toplevel):
         studio_selection = ttk.Combobox(self, textvariable=self.studio_selection_var, state="readonly")
         # studio_selection['values'] = ("SSL", "Audient", "Avid S6", "02R", "Production Suite 1", "Production Suite 2",
         #                               "Production Suite 3", "Production Suite 4")
-        studio_selection['values'] =\
+        studio_selection['values'] = \
             list(self.controller.supersaas_controller.get_teacher_booking().get_resource_dict().keys())
         time_start_label = ttk.Label(self, text="Start Time: ")
         time_start_entry = ttk.Entry(self, textvariable=self.time_start_var)
@@ -257,19 +294,22 @@ class TeacherBookingScreen(tk.Toplevel):
         self.destroy()
 
 
+# noinspection PyTypeChecker
 class StudentListScreen(tk.Toplevel):
     def __init__(self, container):
         super().__init__(container)
+        self.background_color = None
         self.controller = container
+        self.configure(background="#292929")
         self.title("Student List")
-        self.geometry("700x600")
+        self.geometry("730x600")
         self.resizable(False, False)
-        self.config(background=self.controller.background_color)
+        # self.config(background=self.controller.background_color)
 
         self.the_frame = tk.Frame(self, height=600)
         self.the_frame.columnconfigure(0, weight=1)
 
-        self.the_canvas = tk.Canvas(self.the_frame, height=600, background=self.controller.background_color)
+        self.the_canvas = tk.Canvas(self.the_frame, height=600)
 
         self.scroll_bar = ttk.Scrollbar(self, orient="vertical", command=self.the_canvas.yview)
 
@@ -304,7 +344,8 @@ class StudentListScreen(tk.Toplevel):
             self.background_color = "#3f7343"
 
             if mod == "NOT ACTIVE":
-                self.background_color = self.controller.background_color
+                # self.background_color = self.controller.background_color
+                pass
             elif the_credits == "0":
                 self.background_color = "#aa0808"
             elif mod == "Graduate":
@@ -327,7 +368,7 @@ class StudentListScreen(tk.Toplevel):
             icr_label.grid(row=0, column=2, sticky="ew", ipadx=5)
             gpa_label.grid(row=0, column=3, sticky="ew", ipadx=5)
             credit_label.grid(row=0, column=4, sticky="ew", ipadx=5)
-            profile_button.grid(row=0, column=5, sticky="ew", ipadx=5)
+            profile_button.grid(row=0, column=5, sticky="e", ipadx=5)
 
     def open_profile_screen(self, student_object, background_color):
         profile_window = StudentProfileScreen(self.controller, student_object, background_color)
@@ -335,10 +376,12 @@ class StudentListScreen(tk.Toplevel):
         profile_window.mainloop()
 
 
+# noinspection PyTypeChecker
 class StudentProfileScreen(tk.Toplevel):
     def __init__(self, container, student_object, color):
         super().__init__(container)
         self.controller = container
+        self.configure(background="#292929")
         # Variables
         student_name = student_object.get_full_name()
         student_id = student_object.get_student_id()
@@ -373,7 +416,6 @@ class StudentProfileScreen(tk.Toplevel):
         gpa_info.grid(row=5, column=0, sticky="ew")
         credit_info.grid(row=6, column=0, sticky="ew")
         agenda_button.grid(row=7, column=0, ipadx=10, ipady=10)
-
 
 
 if __name__ == "__main__":

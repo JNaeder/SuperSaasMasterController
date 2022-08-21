@@ -3,11 +3,13 @@ import tkinter as tk
 from tkinter import ttk
 
 
+# noinspection PyTypeChecker
 class SettingsScreen(tk.Toplevel):
     def __init__(self, container):
         super().__init__(container)
         # Variables
         self.controller = container
+        self.configure(background="#292929")
         # String Vars
         self.icr_var = tk.StringVar()
         self.gpa_var = tk.StringVar()
@@ -16,7 +18,6 @@ class SettingsScreen(tk.Toplevel):
         self.schedule_id_var = tk.StringVar()
         # Setup
         self.title("Settings")
-        self.config(background=self.controller.background_color)
         # Widgets
         the_title = ttk.Label(self, text="Settings", font=("Arial", 25), padding=20, anchor="center")
         icr_cutoff_label = ttk.Label(self, text="ICR Cutoff: ", padding=10)

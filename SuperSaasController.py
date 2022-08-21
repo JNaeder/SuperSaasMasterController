@@ -21,7 +21,8 @@ class StudentClass:
         self.set_full_names()
         self._full_name = f"{self._first_name} {self._last_name}"
 
-    def get_class_schedule_name(self, schedule):
+    @staticmethod
+    def get_class_schedule_name(schedule):
         schedule_dict = {
             "E": "EVE",
             "A": "AM",
