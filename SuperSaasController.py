@@ -318,6 +318,12 @@ class SuperSaasController:
         self._all_bookings = self._client.appointments.list(schedule_id=self._schedule_id, limit=1000,
                                                             start_time=date_today)
 
+    def get_bookings_for_today(self):
+        the_date_start = datetime.datetime(2022, 8, 19)
+        the_date_end = datetime.datetime(2022, 8, 20)
+        day_bookings = self._client.appointments.range(self._schedule_id, False, the_date_start, the_date_end, False, 100)
+        return day_bookings
+
     def get_all_users(self):
         return self._all_users
 
@@ -518,7 +524,6 @@ class SuperSaasController:
 
 if __name__ == "__main__":
     ss = SuperSaasController()
-    ss.get_all_info()
-    tb = ss.get_teacher_booking()
+    # ss.get_bookings_for_today()
     # august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
     # tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)
