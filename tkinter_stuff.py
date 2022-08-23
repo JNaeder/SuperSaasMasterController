@@ -6,6 +6,8 @@ from SuperSaasController import SuperSaasController
 import webbrowser
 from PIL import Image, ImageTk
 from SettingsScreen import SettingsScreen
+import sys
+import os
 
 
 class App(tk.Tk):
@@ -21,8 +23,8 @@ class App(tk.Tk):
         self.title("SAE NYC Booking Manager")
         # self.resizable(False, False)
         self.width, self.height = self.winfo_screenwidth(), self.winfo_screenheight()
-        # self.geometry(f"{self.width}x{self.height}")
-        self.attributes("-fullscreen", True)
+        self.geometry(f"{self.width}x{self.height}")
+        # self.attributes("-fullscreen", True)
         self.style = StyleClass(self)
 
         # Frames
@@ -71,10 +73,15 @@ class TitleFrame(ttk.Frame):
         global logo, settings_icon_image, web_icon_image, refresh_icon_image
         self.controller = container
         # Variables
-        logo = ImageTk.PhotoImage(Image.open("imgs/Transparent Smaller.png").resize(size=(128, 128)))
-        settings_icon_image = ImageTk.PhotoImage(Image.open("imgs/settings.png").resize(size=(64, 64)))
-        web_icon_image = ImageTk.PhotoImage(Image.open("imgs/internet.png").resize(size=(64, 64)))
-        refresh_icon_image = ImageTk.PhotoImage(Image.open("imgs/refresh.png").resize(size=(64, 64)))
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+        path_to_logo = os.path.abspath(os.path.join(bundle_dir, 'imgs/Transparent Smaller.png'))
+        logo = ImageTk.PhotoImage(Image.open(path_to_logo).resize(size=(128, 128)))
+        path_to_settings_icon = os.path.abspath(os.path.join(bundle_dir, 'imgs/settings.png'))
+        settings_icon_image = ImageTk.PhotoImage(Image.open(path_to_settings_icon).resize(size=(64, 64)))
+        path_to_web_icon = os.path.abspath(os.path.join(bundle_dir, 'imgs/internet.png'))
+        web_icon_image = ImageTk.PhotoImage(Image.open(path_to_web_icon).resize(size=(64, 64)))
+        path_to_refresh_icon = os.path.abspath(os.path.join(bundle_dir, 'imgs/refresh.png'))
+        refresh_icon_image = ImageTk.PhotoImage(Image.open(path_to_refresh_icon).resize(size=(64, 64)))
 
         # Widgets
         logo_label = ttk.Label(self, image=logo, padding=(50, 0, 50, 0))
@@ -422,8 +429,11 @@ class TodayBookingScreen(tk.Toplevel):
     def __init__(self, container: App, list_of_bookings):
         super().__init__(container)
         global cancel_icon_image, check_icon_image
-        self.check_icon_image = ImageTk.PhotoImage(Image.open("imgs/checkmark.png").resize(size=(32, 32)))
-        self.cancel_icon_image = ImageTk.PhotoImage(Image.open("imgs/cancel.png").resize(size=(32, 32)))
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+        path_to_check_icon = os.path.abspath(os.path.join(bundle_dir, 'imgs/checkmark.png'))
+        self.check_icon_image = ImageTk.PhotoImage(Image.open(path_to_check_icon).resize(size=(32, 32)))
+        path_to_cancel_icon = os.path.abspath(os.path.join(bundle_dir, 'imgs/cancel.png'))
+        self.cancel_icon_image = ImageTk.PhotoImage(Image.open(path_to_cancel_icon).resize(size=(32, 32)))
 
         self.list_of_bookings = list_of_bookings
         self.background_color = None

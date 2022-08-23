@@ -1,6 +1,8 @@
 import json
 import tkinter as tk
 from tkinter import ttk
+import sys
+import os
 
 
 # noinspection PyTypeChecker
@@ -52,7 +54,9 @@ class SettingsScreen(tk.Toplevel):
         self.disable_entries()
 
     def get_json_data(self):
-        with open("data.json", "r") as the_file:
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+        path_to_json = os.path.abspath(os.path.join(bundle_dir, 'data.json'))
+        with open(path_to_json, "r") as the_file:
             the_data = json.load(the_file)
         self.icr_var.set(the_data["icr"])
         self.gpa_var.set(the_data["gpa"])

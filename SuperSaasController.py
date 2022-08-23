@@ -4,6 +4,8 @@ import gspread
 import datetime
 import json
 from add_bookings_repeating import TeacherBooking
+import sys
+import os
 
 
 class StudentClass:
@@ -242,7 +244,9 @@ class SuperSaasController:
         self._app = app
 
     def read_json_data(self):
-        with open("data.json", "r") as the_file:
+        bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname(__file__)))
+        path_to_json = os.path.abspath(os.path.join(bundle_dir, 'data.json'))
+        with open(path_to_json, "r") as the_file:
             the_data = json.load(the_file)
         self._icr_cutoff = the_data["icr"]
         self._gpa_cutoff = the_data["gpa"]
@@ -299,6 +303,10 @@ class SuperSaasController:
         return self._all_employees
 
     def setup_student_holder(self):
+        print(self._client)
+        print(self._client.account_name)
+        print(self._client.api_key)
+        print(self._schedule_id)
         self._all_users = self._client.users.list(form=False, limit=500)
         self._student_holder.reset_list_of_student()
         for user in self._all_users:
@@ -319,9 +327,7 @@ class SuperSaasController:
                                                             start_time=date_today)
 
     def get_bookings_for_today(self):
-        the_date_start = datetime.datetime(2022, 8, 19)
-        the_date_end = datetime.datetime(2022, 8, 20)
-        day_bookings = self._client.appointments.range(self._schedule_id, False, the_date_start, the_date_end, False, 100)
+        day_bookings = self._client.appointments.range(self._schedule_id, True, 100)
         return day_bookings
 
     def get_all_users(self):
@@ -524,6 +530,6 @@ class SuperSaasController:
 
 if __name__ == "__main__":
     ss = SuperSaasController()
-    # ss.get_bookings_for_today()
+    print(len(ss.get_bookings_for_today()))
     # august_dates = tb.get_list_of_dates_for_term(datetime.datetime(2022, 8, 8), datetime.datetime(2022, 8, 18))
     # tb.create_repeating_bookings("Abe Silver", "Audient", 2, 14, 4, august_dates)
