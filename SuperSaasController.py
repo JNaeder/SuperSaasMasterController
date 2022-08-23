@@ -303,10 +303,6 @@ class SuperSaasController:
         return self._all_employees
 
     def setup_student_holder(self):
-        print(self._client)
-        print(self._client.account_name)
-        print(self._client.api_key)
-        print(self._schedule_id)
         self._all_users = self._client.users.list(form=False, limit=500)
         self._student_holder.reset_list_of_student()
         for user in self._all_users:
