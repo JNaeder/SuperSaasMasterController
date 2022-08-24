@@ -101,7 +101,7 @@ class StudentObjectHolder:
         if student is not None:
             student.set_saas_id(parameter)
 
-    def get_student_by_student_id(self, student_id):
+    def get_student_by_student_id(self, student_id) -> StudentClass:
         for student in self._list_of_student_objects:
             if student.get_student_id() == student_id:
                 return student
@@ -142,6 +142,7 @@ class GoogleSheets:
         grads_sheet = other_stuff_spreadsheet.worksheet("Grads")
         preferred_name_sheet = other_stuff_spreadsheet.worksheet("Preferred Names")
         self._log_book = other_stuff_spreadsheet.worksheet("Log Book")
+        self.blocked_list = other_stuff_spreadsheet.worksheet("Block List")
         all_active_worksheet = main_spreadsheet.worksheet("All Active")
         icr_gpa_worksheet = main_spreadsheet.worksheet("Running GPA and ICR")
         # ICR/GPA of Values
@@ -209,6 +210,13 @@ class GoogleSheets:
             new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE", "-")
             return new_student
         return None
+
+    def add_student_to_block_list(self, full_name, student_id, date_blocked, reason):
+        row_num = len(self.blocked_list.col_values(1)) + 1
+        self.blocked_list.update_cell(row_num, 1, full_name)
+        self.blocked_list.update_cell(row_num, 2, student_id)
+        self.blocked_list.update_cell(row_num, 3, date_blocked)
+        self.blocked_list.update_cell(row_num, 4, reason)
 
     def log_to_log_book(self, student_object, the_log):
         student_name = student_object.get_full_name()
@@ -514,6 +522,35 @@ class SuperSaasController:
                         log = f"There was an error updating {correct_name}'s booking."
                         self._app.print_output(error)
                         self._app.print_output(log)
+
+    def get_list_of_bookings_from_agenda(self, supersaas_id):
+        output = self._client.appointments.agenda(self._schedule_id, supersaas_id)
+        return output
+
+    def remove_bookings_from_list(self, list_of_bookings):
+        for booking in list_of_bookings:
+            appointment_id = booking.__getattribute__("id")
+            booked_start_time = booking.__getattribute__("start")
+            the_date = datetime.datetime.fromisoformat(booked_start_time).date()
+            if the_date != datetime.datetime.today().date():
+                print(f"Delete Booking - {appointment_id}")
+
+    def block_student(self, student_id, supersaas_id, reason):
+        the_date = datetime.datetime.now().isoformat()
+        student_name = self._student_holder.get_student_by_student_id(student_id).get_full_name()
+
+        # Log the info
+        self._google_sheets.add_student_to_block_list(student_name, student_id, the_date, reason)
+        log = f"Blocked {student_name} for {reason}"
+        self._app.print_output(log)
+
+        # Update credits to 0
+        # new_attributes = {"credit": "0"}
+        # self._client.users.update(supersaas_id, new_attributes)
+
+        # Get Agenda and cancel those bookings
+        future_bookings = self.get_list_of_bookings_from_agenda(supersaas_id)
+        self.remove_bookings_from_list(future_bookings)
 
     def get_number_of_current_users(self):
         self.setup_student_holder()
