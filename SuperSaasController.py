@@ -101,7 +101,7 @@ class StudentObjectHolder:
         if student is not None:
             student.set_saas_id(parameter)
 
-    def get_student_by_student_id(self, student_id) -> StudentClass:
+    def get_student_by_student_id(self, student_id):
         for student in self._list_of_student_objects:
             if student.get_student_id() == student_id:
                 return student
@@ -530,23 +530,33 @@ class SuperSaasController:
     def remove_bookings_from_list(self, list_of_bookings):
         for booking in list_of_bookings:
             appointment_id = booking.__getattribute__("id")
+            student_id = booking.__getattribute__("created_by").split(".")[0]
+            student_object = self._student_holder.get_student_by_student_id(student_id)
             booked_start_time = booking.__getattribute__("start")
+            student_name = booking.__getattribute__("full_name")
+            studio_name = booking.__getattribute__("res_name")
             the_date = datetime.datetime.fromisoformat(booked_start_time).date()
             if the_date != datetime.datetime.today().date():
-                print(f"Delete Booking - {appointment_id}")
+                log = f"{student_name}'s {studio_name} booking for " \
+                      f"{datetime.datetime.fromisoformat(booked_start_time).strftime('%m/%d %I:%M%p')} has been deleted."
+                self._app.print_output(log)
+                self._google_sheets.log_to_log_book(student_object, log)
+                self._client.appointments.delete(self._schedule_id, appointment_id)
 
     def block_student(self, student_id, supersaas_id, reason):
-        the_date = datetime.datetime.now().isoformat()
+        the_date = datetime.datetime.today().date().isoformat()
         student_name = self._student_holder.get_student_by_student_id(student_id).get_full_name()
+        student_object = self._student_holder.get_student_by_student_id(student_id)
 
         # Log the info
         self._google_sheets.add_student_to_block_list(student_name, student_id, the_date, reason)
         log = f"Blocked {student_name} for {reason}"
         self._app.print_output(log)
+        self._google_sheets.log_to_log_book(student_object, log)
 
         # Update credits to 0
-        # new_attributes = {"credit": "0"}
-        # self._client.users.update(supersaas_id, new_attributes)
+        new_attributes = {"credit": "0"}
+        self._client.users.update(supersaas_id, new_attributes)
 
         # Get Agenda and cancel those bookings
         future_bookings = self.get_list_of_bookings_from_agenda(supersaas_id)

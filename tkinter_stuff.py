@@ -214,7 +214,7 @@ class LeftSideFrame(ttk.Frame):
 
 
 class OutputScreen(ttk.Frame):
-    def __init__(self, container: App):
+    def __init__(self, container: LeftSideFrame):
         super().__init__(container)
         self.screen = tk.Text(self, state="disabled", background="black", foreground="white",
                               font=("Arial", 15), wrap="word")
@@ -492,7 +492,7 @@ class TodayBookingScreen(ttk.Frame):
         self.the_frame.rowconfigure(0, weight=1)
         self.the_frame.columnconfigure(0, weight=1)
 
-        self.the_canvas = tk.Canvas(self.the_frame, height=self.controller.controller.height, background="#292929")
+        self.the_canvas = tk.Canvas(self.the_frame, height=1000, width=800, background="#292929")
 
         self.scroll_bar = ttk.Scrollbar(self, orient="vertical", command=self.the_canvas.yview)
 
