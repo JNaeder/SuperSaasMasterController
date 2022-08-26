@@ -486,13 +486,15 @@ class TodayBookingScreen(ttk.Frame):
 
         self.list_of_bookings = list_of_bookings
         self.controller = container
-        self.columnconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        self.the_frame = ttk.Frame(self)
+        self.the_frame = ttk.Frame(self, padding=20)
         self.the_frame.rowconfigure(0, weight=1)
         self.the_frame.columnconfigure(0, weight=1)
 
-        self.the_canvas = tk.Canvas(self.the_frame, height=1000, width=800, background="#292929")
+        self.the_canvas = tk.Canvas(self.the_frame, background="#292929")
+        self.the_canvas.grid_columnconfigure(0, weight=1)
 
         self.scroll_bar = ttk.Scrollbar(self, orient="vertical", command=self.the_canvas.yview)
 
@@ -505,7 +507,7 @@ class TodayBookingScreen(ttk.Frame):
         self.the_canvas.config(yscrollcommand=self.scroll_bar.set)
 
         self.the_frame.grid(sticky="nsew")
-        self.the_canvas.grid(sticky="nsew")
+        self.the_canvas.grid(row=0, column=0, sticky="nsew")
         self.scroll_bar.grid(row=0, column=1, sticky="ns")
 
         self.show_list()
@@ -514,35 +516,36 @@ class TodayBookingScreen(ttk.Frame):
     def show_list(self):
         for booking in self.list_of_bookings:
             booked_email = booking.__getattribute__("created_by")
-            student_id = booked_email.split(".")[0]
-            booked_name = booking.__getattribute__("full_name")
-            booked_room = booking.__getattribute__("res_name")
-            booked_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
-            booked_time_format = booked_time.strftime("%I:%M%p")
-            user_id = booking.__getattribute__("user_id")
-            booked_date_and_room = f"{booked_time.strftime('%m/%d %I:%M%p')} {booked_room}"
-
-            info_frame = tk.LabelFrame(self.scrollable_frame, background="#292929")
-            self.grid_columnconfigure(0, weight=1)
-            info_frame.grid(column=0, sticky="nsew", pady=5)
-            info_frame.grid_columnconfigure(5, weight=1)
-            info_frame.grid_columnconfigure(4, weight=1)
-
-            name_label = ttk.Label(info_frame, text=booked_name, font=("Arial", 15))
-            room_label = ttk.Label(info_frame, text=booked_room.ljust(30, ' '), font=("Arial", 20))
-            time_label = ttk.Label(info_frame, text=booked_time_format, font=("Arial", 20))
-
             if booked_email.split(" ")[0].split("@")[1] != "sae.edu":
+                student_id = booked_email.split(".")[0]
+                booked_name = booking.__getattribute__("full_name")
+                booked_room = booking.__getattribute__("res_name")
+                booked_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
+                booked_time_format = booked_time.strftime("%I:%M%p")
+                user_id = booking.__getattribute__("user_id")
+                booked_date_and_room = f"{booked_time.strftime('%m/%d %I:%M%p')} {booked_room}"
+
+                info_frame = tk.LabelFrame(self.scrollable_frame, background="#292929")
+                self.grid_columnconfigure(0, weight=1)
+                info_frame.grid(column=0, sticky="nsew", pady=5)
+                info_frame.grid_columnconfigure(5, weight=1)
+                info_frame.grid_columnconfigure(4, weight=1)
+
+                name_label = ttk.Label(info_frame, text=booked_name, font=("Arial", 15))
+                room_label = ttk.Label(info_frame, text=booked_room.ljust(30, ' '), font=("Arial", 20))
+                time_label = ttk.Label(info_frame, text=booked_time_format, font=("Arial", 20))
                 check_icon = ttk.Button(info_frame, image=self.check_icon_image, style="Title.TButton")
                 cancel_icon = ttk.Button(info_frame, image=self.cancel_icon_image, style="Title.TButton",
                                          command=lambda a=student_id, e=user_id, c=booked_date_and_room:
                                          self.x_out_booking(a, e, c))
+
+                name_label.grid(row=0, column=2, ipadx=5, pady=10)
+                room_label.grid(row=0, column=0, ipadx=5)
+                time_label.grid(row=0, column=1, ipadx=5)
                 check_icon.grid(row=0, column=4, sticky="e", ipadx=5)
                 cancel_icon.grid(row=0, column=5, sticky="e", ipadx=5)
 
-            name_label.grid(row=0, column=2, ipadx=5, pady=10)
-            room_label.grid(row=0, column=0, ipadx=5)
-            time_label.grid(row=0, column=1, ipadx=5)
+
 
     def x_out_booking(self, student_id, user_id, booked_room):
         reason = f"Missed {booked_room} Booking"
