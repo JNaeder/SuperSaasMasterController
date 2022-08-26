@@ -1,5 +1,6 @@
 import SuperSaaS.Error
 from SuperSaaS import Client, Configuration
+import the_emailer_gmail
 import gspread
 import datetime
 import json
@@ -561,6 +562,7 @@ class SuperSaasController:
         # Get Agenda and cancel those bookings
         future_bookings = self.get_list_of_bookings_from_agenda(supersaas_id)
         self.remove_bookings_from_list(future_bookings)
+        the_emailer_gmail.send_missed_booking_email("a.marek@sae.edu")
 
     def get_number_of_current_users(self):
         self.setup_student_holder()

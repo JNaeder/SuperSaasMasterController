@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import os.path
 import base64
 
@@ -38,6 +36,9 @@ def send_email(to_email, the_subject, the_message):
     service.users().messages().send(userId="me", body=create_message).execute()
 
 
-if __name__ == '__main__':
-    email_message = "Antooooooooon"
-    send_email("a.marek@sae.edu", "Hello Anton", email_message)
+def send_missed_booking_email(to_email):
+    print("Send Email to " + to_email)
+    with open("Email Templates/missed_booking.txt", "r") as the_file:
+        new_message = the_file.read() % ("Anton", "SSL", "8/26")
+    send_email(to_email, "Missed Booking", new_message)
+

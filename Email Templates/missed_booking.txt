@@ -1,0 +1,8 @@
+Dear %s,
+
+You have missed your %s booking for %s.
+
+Any bookings you had have been removed and you are now blocked from booking studio time for one week starting today.
+
+Let us know if you have any questions about this.
+
