@@ -1,5 +1,6 @@
 import time
 import datetime
+import threading
 import tkinter as tk
 from tkinter import ttk
 from SuperSaasController import SuperSaasController
@@ -26,7 +27,7 @@ class App(tk.Tk):
         self.style = StyleClass(self)
 
         # Frames
-        title_frame = TitleFrame(self)
+        self.title_frame = TitleFrame(self)
         self.left_side_frame = LeftSideFrame(self)
         self.right_side_frame = RightSideFrame(self)
 
@@ -35,14 +36,24 @@ class App(tk.Tk):
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(1, weight=1)
 
-        title_frame.grid(row=0, column=0, columnspan=3, sticky="ew", pady=10, padx=10)
+        self.title_frame.grid(row=0, column=0, columnspan=3, sticky="ew", pady=10, padx=10)
         self.left_side_frame.grid(row=1, column=0, sticky="nsew")
         self.right_side_frame.grid(row=1, column=1, sticky="nsew")
 
         self.print_output("Welcome to SAE NYC Booking Manager.")
 
+        new_thread = threading.Thread(target=self.check_everything)
+        new_thread.start()
+
     def print_output(self, output_text):
         self.left_side_frame.output_screen.print_output(output_text)
+
+    def check_everything(self):
+        while True:
+            self.title_frame.get_all_info()
+            self.left_side_frame.buttons_frame.go_through_all_bookings()
+            self.left_side_frame.buttons_frame.go_through_all_users()
+            time.sleep(30)
 
 
 class StyleClass(ttk.Style):
@@ -141,9 +152,6 @@ class TitleFrame(ttk.Frame):
         self.controller.print_output(f"Retrieved all student info in {end_time:.2f} seconds")
         self.controller.print_output(f"Current: {self.get_number_of_users()} "
                                      f"Users {self.get_number_of_bookings()} Bookings")
-        button_frame = self.controller.left_side_frame.buttons_frame
-        for button in button_frame.winfo_children():
-            button_frame.set_button_states(button)
 
     def open_teacher_booking_page(self):
         teacher_booking_page = TeacherBookingScreen(self.controller)
@@ -247,15 +255,6 @@ class ButtonFrames(ttk.Frame):
 
         go_through_users_button.grid(row=0, column=1, sticky="ew", padx=10, pady=10, ipady=10)
         go_through_bookings_button.grid(row=0, column=2, sticky="ew", padx=10, pady=10, ipady=10)
-
-        for button in self.winfo_children():
-            self.set_button_states(button)
-
-    def set_button_states(self, button):
-        if not self.controller.controller.supersaas_controller.info_is_there():
-            button['state'] = "disabled"
-        else:
-            button['state'] = "normal"
 
     def go_through_all_users(self):
         start_time = time.perf_counter()
@@ -544,8 +543,6 @@ class TodayBookingScreen(ttk.Frame):
                 time_label.grid(row=0, column=1, ipadx=5)
                 check_icon.grid(row=0, column=4, sticky="e", ipadx=5)
                 cancel_icon.grid(row=0, column=5, sticky="e", ipadx=5)
-
-
 
     def x_out_booking(self, student_id, user_id, booked_room):
         reason = f"Missed {booked_room} Booking"
