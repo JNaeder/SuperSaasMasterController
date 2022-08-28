@@ -3,6 +3,7 @@ import datetime
 import threading
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from SuperSaasController import SuperSaasController
 import webbrowser
 from PIL import Image, ImageTk
@@ -54,7 +55,7 @@ class App(tk.Tk):
             self.supersaas_controller.get_all_info()
             self.supersaas_controller.go_through_all_users()
             self.supersaas_controller.go_through_all_bookings()
-            time.sleep(30)
+            time.sleep(5)
 
 
 class StyleClass(ttk.Style):
@@ -478,9 +479,8 @@ class TodayBookingScreen(ttk.Frame):
                 label_style = status + ".TLabel"
 
                 info_frame = tk.LabelFrame(self.scrollable_frame, background=background_color)
-                self.grid_columnconfigure(0, weight=1)
                 info_frame.grid(column=0, sticky="nsew", pady=5)
-                info_frame.grid_columnconfigure(5, weight=1)
+                # info_frame.grid_columnconfigure(5, weight=1)
                 info_frame.grid_columnconfigure(4, weight=1)
 
                 name_label = ttk.Label(info_frame, text=booked_name, font=("Arial", 15), style=label_style)
@@ -492,7 +492,7 @@ class TodayBookingScreen(ttk.Frame):
                                          command=lambda a=student_id, e=user_id, c=booking:
                                          self.x_out_booking(a, e, c))
 
-                name_label.grid(row=0, column=2, ipadx=5, pady=10)
+                name_label.grid(row=0, column=2, ipadx=5, pady=10, sticky="e")
                 room_label.grid(row=0, column=0, ipadx=5)
                 time_label.grid(row=0, column=1, ipadx=5)
                 if status == "OPEN":
@@ -500,10 +500,13 @@ class TodayBookingScreen(ttk.Frame):
                     cancel_icon.grid(row=0, column=5, sticky="e", ipadx=5)
 
     def x_out_booking(self, student_id, user_id, booking):
-        booking_id = booking.__getattribute__("id")
-        self.controller.controller.supersaas_controller.block_student(student_id, user_id, booking)
-        self.supersaas_controller.get_database().set_booking_status_by_booking_id(booking_id, "BLOCKED")
-        self.controller.get_today_bookings()
+        message = messagebox.askyesno("Block Student?", "Are you sure this student did not show up?"
+                                                        "\n\n They will be blocked and all of their bookings deleted.")
+        if message:
+            booking_id = booking.__getattribute__("id")
+            self.controller.controller.supersaas_controller.block_student(student_id, user_id, booking)
+            self.supersaas_controller.get_database().set_booking_status_by_booking_id(booking_id, "BLOCKED")
+            self.controller.get_today_bookings()
 
     def checkmark_booking(self, booking):
         booking_id = booking.__getattribute__("id")
