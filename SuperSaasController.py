@@ -199,20 +199,23 @@ class DatabaseInfo:
             booking_id = booking.__getattribute__("id")
             studio_name = booking.__getattribute__("res_name")
             booking_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
-            booking_day = booking_time.date()
             student_name = booking.__getattribute__("full_name")
 
-            if booking_day == datetime.datetime.today().date():
-                if booking_id not in self.get_today_booking_ids():
-                    sql_1 = f"INSERT INTO today_bookings (booking_id, studio_name, booking_datetime, student_name) " \
-                          f"VALUES ({booking_id}, '{studio_name}', '{booking_time.isoformat()}', '{student_name}')"
-                    self.cursor.execute(sql_1)
-                    self.database.commit()
-            else:
-                if booking_id in self.get_today_booking_ids():
-                    sql_2 = f"DELETE FROM today_bookings WHERE booking_id={booking_id}"
-                    self.cursor.execute(sql_2)
-                    self.database.commit()
+            if booking_id not in self.get_today_booking_ids():
+                sql_1 = f"INSERT INTO today_bookings (booking_id, studio_name, booking_datetime, student_name) " \
+                        f"VALUES ({booking_id}, '{studio_name}', '{booking_time.isoformat()}', '{student_name}')"
+                self.cursor.execute(sql_1)
+                self.database.commit()
+
+        for db_booking in self.get_all_today_bookings():
+            booking_id = db_booking[0]
+            booking_time = db_booking[2]
+            booking_day = booking_time.date()
+
+            if booking_day != datetime.datetime.today().date():
+                sql_2 = f"DELETE FROM today_bookings WHERE booking_id={booking_id}"
+                self.cursor.execute(sql_2)
+                self.database.commit()
 
     def get_booking_status_by_booking_id(self, booking_id):
         sql = f"SELECT status FROM today_bookings WHERE booking_id={booking_id}"
@@ -223,10 +226,6 @@ class DatabaseInfo:
         sql = f"UPDATE today_bookings SET status='{new_status}' WHERE booking_id={booking_id}"
         self.cursor.execute(sql)
         self.database.commit()
-
-
-
-
 
     # def log_to_log_book(self, student_object, the_log):
     #     student_name = student_object.get_full_name()
