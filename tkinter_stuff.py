@@ -14,6 +14,7 @@ class App(tk.Tk):
     def __init__(self, sscontrol: SuperSaasController):
         super().__init__()
         self.config(background="#292929")
+        self.state("zoomed")
         # Value Variables
         self.output_value = tk.StringVar()
         # Outside Objects
@@ -42,7 +43,7 @@ class App(tk.Tk):
 
         self.print_output("Welcome to SAE NYC Booking Manager.")
 
-        new_thread = threading.Thread(target=self.check_everything)
+        new_thread = threading.Thread(target=self.check_everything, daemon=True)
         new_thread.start()
 
     def print_output(self, output_text):
@@ -50,9 +51,9 @@ class App(tk.Tk):
 
     def check_everything(self):
         while True:
-            self.title_frame.get_all_info()
-            self.left_side_frame.buttons_frame.go_through_all_bookings()
-            self.left_side_frame.buttons_frame.go_through_all_users()
+            self.supersaas_controller.get_all_info()
+            self.supersaas_controller.go_through_all_users()
+            self.supersaas_controller.go_through_all_bookings()
             time.sleep(30)
 
 
@@ -63,26 +64,24 @@ class StyleClass(ttk.Style):
         background_white = "#FFFFFF"
         background_dark = "#292929"
         # sae_blue = "#307FE2"
-        # sae_teal = "#00B0B9"
-        # sae_red = "#EE2737"
+        sae_teal = "#00B0B9"
+        sae_red = "#EE2737"
         # sae_yellow = "#FFB500"
         # sae_light_blue = "#58c9e6"
 
         self.theme_use("default")
-        # Test Stuff
-        self.configure("Red.TFrame", background="red")
-        self.configure("Blue.TFrame", background="blue")
-        self.configure("Yellow.TFrame", background="yellow")
-        self.configure("Green.TFrame", background="green")
-
-        self.configure("Red.TButton", background="red", relief="solid", borderwidth=2)
 
         self.configure("TFrame", background=background_dark)
+
         self.configure("TLabel", background=background_dark, foreground="white")
+        self.configure("OPEN.TLabel", background=background_dark, foreground="white")
+        self.configure("CLOSED.TLabel", background=sae_teal, foreground="white")
+        self.configure("BLOCKED.TLabel", background=sae_red, foreground="white")
+
         self.configure("TButton", background=background_white, foreground=background_dark,
                        relief="solid", borderwidth=2, padding=0)
         self.configure("Title.TButton", background=background_dark, relief="flat")
-        self.configure("Big.TButton", background=background_white, font=("Arial", 25),
+        self.configure("Big.TButton", background=background_white, font=("Arial", 15),
                        foreground=background_dark, relief="solid", borderwidth=2)
 
 
@@ -106,8 +105,6 @@ class TitleFrame(ttk.Frame):
 
         button_frame = ttk.Frame(self)
 
-        refresh_icon = ttk.Button(button_frame, image=refresh_icon_image,
-                                  command=self.get_all_info, style="Title.TButton")
         settings_icon = ttk.Button(button_frame, image=settings_icon_image,
                                    command=self.open_settings_page, style="Title.TButton")
         web_icon = ttk.Button(button_frame, image=web_icon_image,
@@ -128,7 +125,6 @@ class TitleFrame(ttk.Frame):
 
         button_frame.grid(row=0, column=3, sticky="ew")
 
-        refresh_icon.grid(row=0, column=0, padx=5)
         settings_icon.grid(row=0, column=1, padx=5)
         web_icon.grid(row=0, column=2, padx=5)
         teacher_icon.grid(row=0, column=3, padx=5)
@@ -145,25 +141,9 @@ class TitleFrame(ttk.Frame):
         webbrowser.open("https://supersaas.com/schedule/SAE_New_York/5th_Floor_Booking")
         self.controller.print_output("Web pages open")
 
-    def get_all_info(self):
-        start_time = time.perf_counter()
-        self.controller.supersaas_controller.get_all_info()
-        end_time = time.perf_counter() - start_time
-        self.controller.print_output(f"Retrieved all student info in {end_time:.2f} seconds")
-        self.controller.print_output(f"Current: {self.get_number_of_users()} "
-                                     f"Users {self.get_number_of_bookings()} Bookings")
-
     def open_teacher_booking_page(self):
         teacher_booking_page = TeacherBookingScreen(self.controller)
         teacher_booking_page.mainloop()
-
-    def get_number_of_users(self):
-        user_num = self.controller.supersaas_controller.get_number_of_current_users()
-        return user_num
-
-    def get_number_of_bookings(self):
-        booking_num = self.controller.supersaas_controller.get_number_of_current_bookings()
-        return booking_num
 
 
 class RightSideFrame(ttk.Frame):
@@ -182,13 +162,13 @@ class RightSideFrame(ttk.Frame):
         today_bookings_button = ttk.Button(self, text="Today's Bookings",
                                            command=self.get_today_bookings, style="Big.TButton")
 
-        today_bookings_button.grid(row=0, column=0, sticky="ew", padx=10, pady=10, ipady=10)
-        student_list_button.grid(row=0, column=1, sticky="ew", padx=10, pady=10, ipady=10)
+        today_bookings_button.grid(row=0, column=0, sticky="nsew", padx=5, pady=20, ipady=2)
+        student_list_button.grid(row=0, column=1, sticky="nsew", padx=5, pady=20, ipady=2)
 
         self.student_list_page = None
         self.today_booking_screen = None
 
-        self.open_student_list_page()
+        self.get_today_bookings()
 
     def open_student_list_page(self):
         if self.student_list_page is not None:
@@ -204,8 +184,8 @@ class RightSideFrame(ttk.Frame):
         bookings = self.controller.supersaas_controller.get_bookings_for_today()
         self.today_booking_screen = TodayBookingScreen(self, bookings)
         self.today_booking_screen.grid(row=1, column=0, columnspan=2, sticky="nsew")
-        self.student_list_page.columnconfigure(0, weight=1)
-        self.student_list_page.rowconfigure(0, weight=1)
+        self.today_booking_screen.columnconfigure(0, weight=1)
+        self.today_booking_screen.rowconfigure(0, weight=1)
 
 
 class LeftSideFrame(ttk.Frame):
@@ -213,12 +193,10 @@ class LeftSideFrame(ttk.Frame):
         super().__init__(container, padding=(20, 10))
         self.controller = container
         self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
         self.output_screen = OutputScreen(self)
-        self.buttons_frame = ButtonFrames(self)
-
-        self.output_screen.grid(row=1, column=0, sticky="new")
-        self.buttons_frame.grid(row=2, column=0, sticky="ew")
+        self.output_screen.grid(row=1, column=0, sticky="nsew")
 
 
 class OutputScreen(ttk.Frame):
@@ -227,7 +205,8 @@ class OutputScreen(ttk.Frame):
         self.screen = tk.Text(self, state="disabled", background="black", foreground="white",
                               font=("Arial", 15), wrap="word")
         self.grid_columnconfigure(0, weight=1)
-        self.screen.grid(sticky="nsew")
+        self.grid_rowconfigure(0, weight=1)
+        self.screen.grid(sticky="nsew", pady=20)
 
     def print_output(self, output_text):
         self.screen.config(state="normal")
@@ -235,42 +214,6 @@ class OutputScreen(ttk.Frame):
         final_output = f"{current_time}: {output_text}\n"
         self.screen.insert("1.0", final_output)
         self.screen.config(state="disabled")
-
-
-# noinspection PyTypeChecker
-class ButtonFrames(ttk.Frame):
-    def __init__(self, container: LeftSideFrame):
-        super().__init__(container)
-        self.controller = container
-        # Buttons
-        go_through_users_button = ttk.Button(self, text="Go Through Users",
-                                             command=self.go_through_all_users, style="Big.TButton")
-        go_through_bookings_button = ttk.Button(self, text="Go Through Bookings",
-                                                command=self.go_through_all_bookings, style="Big.TButton")
-        # Layout
-        self.grid_columnconfigure(0, weight=1)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=1)
-        self.grid_columnconfigure(3, weight=1)
-
-        go_through_users_button.grid(row=0, column=1, sticky="ew", padx=10, pady=10, ipady=10)
-        go_through_bookings_button.grid(row=0, column=2, sticky="ew", padx=10, pady=10, ipady=10)
-
-    def go_through_all_users(self):
-        start_time = time.perf_counter()
-        self.controller.controller.supersaas_controller.go_through_all_users()
-        end_time = time.perf_counter() - start_time
-        num_changes = self.controller.controller.supersaas_controller.get_number_of_changes()
-        self.controller.controller.print_output(f"Done Processing Users - {num_changes} changes."
-                                                f" - {end_time:.2f} seconds")
-
-    def go_through_all_bookings(self):
-        start_time = time.perf_counter()
-        self.controller.controller.supersaas_controller.go_through_all_bookings()
-        end_time = time.perf_counter() - start_time
-        num_changes = self.controller.controller.supersaas_controller.get_number_of_changes()
-        self.controller.controller.print_output(f"Done Sorting Bookings - {num_changes} changes. "
-                                                f"- {end_time:.2f} seconds")
 
 
 # noinspection PyTypeChecker
@@ -446,7 +389,6 @@ class StudentProfileScreen(tk.Toplevel):
         the_icr = str(student_object.get_icr()) + "%"
         the_gpa = student_object.get_gpa()
         the_credits = student_object.get_credits()
-        the_class_schedule = student_object.get_class_schedule()
         # Setup
         self.title(student_name)
         self.config(background=color, padx=30, pady=10)
@@ -458,7 +400,6 @@ class StudentProfileScreen(tk.Toplevel):
         full_name_title = ttk.Label(inner_frame, text=student_name, font=("Arial", 25), anchor="center")
         student_id_title = ttk.Label(inner_frame, text=student_id, font=("Arial", 15), anchor="center")
         mod_title = ttk.Label(inner_frame, text=the_mod, font=("Arial", 15), anchor="center")
-        class_schedule_title = ttk.Label(inner_frame, text=the_class_schedule, font=("Arial", 15), anchor="center")
         icr_info = ttk.Label(inner_frame, text=f"ICR: {the_icr}", anchor="center")
         gpa_info = ttk.Label(inner_frame, text=f"GPA: {the_gpa}", anchor="center")
         credit_info = ttk.Label(inner_frame, text=f"Credits: {the_credits}", anchor="center")
@@ -468,7 +409,6 @@ class StudentProfileScreen(tk.Toplevel):
         full_name_title.grid(row=0, column=0, sticky="ew")
         student_id_title.grid(row=1, column=0, sticky="ew")
         mod_title.grid(row=2, column=0, sticky="ew")
-        class_schedule_title.grid(row=3, column=0, sticky="ew")
         icr_info.grid(row=4, column=0, sticky="ew")
         gpa_info.grid(row=5, column=0, sticky="ew")
         credit_info.grid(row=6, column=0, sticky="ew")
@@ -480,11 +420,14 @@ class TodayBookingScreen(ttk.Frame):
     def __init__(self, container: RightSideFrame, list_of_bookings):
         super().__init__(container)
         global cancel_icon_image, check_icon_image
+
         self.check_icon_image = ImageTk.PhotoImage(Image.open(create_path('imgs/checkmark.png')).resize(size=(32, 32)))
         self.cancel_icon_image = ImageTk.PhotoImage(Image.open(create_path('imgs/cancel.png')).resize(size=(32, 32)))
 
         self.list_of_bookings = list_of_bookings
         self.controller = container
+        self.supersaas_controller = self.controller.controller.supersaas_controller
+
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -522,35 +465,50 @@ class TodayBookingScreen(ttk.Frame):
                 booked_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
                 booked_time_format = booked_time.strftime("%I:%M%p")
                 user_id = booking.__getattribute__("user_id")
-                booked_date_and_room = f"{booked_time.strftime('%m/%d %I:%M%p')} {booked_room}"
+                booking_id = booking.__getattribute__("id")
+                status = self.supersaas_controller.get_database().get_booking_status_by_booking_id(booking_id)
 
-                info_frame = tk.LabelFrame(self.scrollable_frame, background="#292929")
+                if status == "CLOSED":
+                    background_color = "#00B0B9"
+                elif status == "BLOCKED":
+                    background_color = "#EE2737"
+                else:
+                    background_color = "#292929"
+
+                label_style = status + ".TLabel"
+
+                info_frame = tk.LabelFrame(self.scrollable_frame, background=background_color)
                 self.grid_columnconfigure(0, weight=1)
                 info_frame.grid(column=0, sticky="nsew", pady=5)
                 info_frame.grid_columnconfigure(5, weight=1)
                 info_frame.grid_columnconfigure(4, weight=1)
 
-                name_label = ttk.Label(info_frame, text=booked_name, font=("Arial", 15))
-                room_label = ttk.Label(info_frame, text=booked_room.ljust(30, ' '), font=("Arial", 20))
-                time_label = ttk.Label(info_frame, text=booked_time_format, font=("Arial", 20))
-                check_icon = ttk.Button(info_frame, image=self.check_icon_image, style="Title.TButton")
+                name_label = ttk.Label(info_frame, text=booked_name, font=("Arial", 15), style=label_style)
+                room_label = ttk.Label(info_frame, text=booked_room, font=("Arial", 20), style=label_style)
+                time_label = ttk.Label(info_frame, text=booked_time_format, font=("Arial", 20), style=label_style)
+                check_icon = ttk.Button(info_frame, image=self.check_icon_image, style="Title.TButton",
+                                        command=lambda a=booking: self.checkmark_booking(a))
                 cancel_icon = ttk.Button(info_frame, image=self.cancel_icon_image, style="Title.TButton",
-                                         command=lambda a=student_id, e=user_id, c=booked_date_and_room:
+                                         command=lambda a=student_id, e=user_id, c=booking:
                                          self.x_out_booking(a, e, c))
 
                 name_label.grid(row=0, column=2, ipadx=5, pady=10)
                 room_label.grid(row=0, column=0, ipadx=5)
                 time_label.grid(row=0, column=1, ipadx=5)
-                check_icon.grid(row=0, column=4, sticky="e", ipadx=5)
-                cancel_icon.grid(row=0, column=5, sticky="e", ipadx=5)
+                if status == "OPEN":
+                    check_icon.grid(row=0, column=4, sticky="e", ipadx=5)
+                    cancel_icon.grid(row=0, column=5, sticky="e", ipadx=5)
 
-    def x_out_booking(self, student_id, user_id, booked_room):
-        reason = f"Missed {booked_room} Booking"
-        self.controller.controller.supersaas_controller.block_student(student_id, user_id, reason)
+    def x_out_booking(self, student_id, user_id, booking):
+        booking_id = booking.__getattribute__("id")
+        self.controller.controller.supersaas_controller.block_student(student_id, user_id, booking)
+        self.supersaas_controller.get_database().set_booking_status_by_booking_id(booking_id, "BLOCKED")
+        self.controller.get_today_bookings()
 
-    @staticmethod
-    def checkmark_booking(booking_id, user_id):
-        print(f"{booking_id} by {user_id} has missed their booking")
+    def checkmark_booking(self, booking):
+        booking_id = booking.__getattribute__("id")
+        self.supersaas_controller.get_database().set_booking_status_by_booking_id(booking_id, "CLOSED")
+        self.controller.get_today_bookings()
 
 
 if __name__ == "__main__":

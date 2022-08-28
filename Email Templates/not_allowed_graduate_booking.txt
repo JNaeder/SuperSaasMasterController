@@ -1,0 +1,7 @@
+Dear %s,
+
+Your %s booking for %s has been removed because graduates are only allowed to book on Fridays when there is no class.
+
+Let us know if you have any questions.
+
+Thank you.

@@ -1,7 +1,7 @@
-import SuperSaaS.Error
 from SuperSaaS import Client, Configuration
 import the_emailer_gmail
 import mysql.connector
+from mysql.connector.errors import *
 # import gspread
 import datetime
 import json
@@ -46,6 +46,9 @@ class StudentClass:
     def get_proper_name(self):
         return self._proper_name
 
+    def get_first_name(self):
+        return self._first_name
+
     def get_last_name(self):
         return self._last_name
 
@@ -81,8 +84,8 @@ class StudentObjectHolder:
     def reset_list_of_student(self):
         self._list_of_student_objects = []
 
-    def add_student(self, student_object):
-        self._list_of_student_objects.append(student_object)
+    def add_student(self, the_student_object):
+        self._list_of_student_objects.append(the_student_object)
 
     def add_parameter_by_id(self, student_id, parameter):
         student = self.get_student_by_student_id(student_id)
@@ -109,15 +112,26 @@ class DatabaseInfo:
     def reset_db(self):
         self.database.commit()
 
-    def get_student_info_from_student_id(self, student_id):
-        sql = f"SELECT * FROM all_active WHERE student_id={student_id}"
+    def get_mod_from_studio_name(self, studio_name):
+        sql = f"SELECT mod_section FROM studio_info WHERE studio_name='{studio_name}'"
         self.cursor.execute(sql)
-        return self.cursor.fetchone()
+        return self.cursor.fetchone()[0]
+
+    def get_student_info_from_student_id(self, student_id):
+        try:
+            sql = f"SELECT * FROM all_active WHERE student_id={student_id}"
+            self.cursor.execute(sql)
+            return self.cursor.fetchone()
+        except ProgrammingError:
+            return None
 
     def get_grad_info_from_student_id(self, student_id):
-        sql = f"SELECT * FROM grads WHERE student_id={student_id}"
-        self.cursor.execute(sql)
-        return self.cursor.fetchone()
+        try:
+            sql = f"SELECT * FROM grads WHERE student_id={student_id}"
+            self.cursor.execute(sql)
+            return self.cursor.fetchone()
+        except ProgrammingError:
+            return None
 
     def get_student_object_from_id(self, student_id, the_name="", email_end=""):
         student_info = self.get_student_info_from_student_id(student_id)
@@ -145,13 +159,75 @@ class DatabaseInfo:
             new_student = StudentClass(student_id, proper_name, 0, 0, "NOT ACTIVE", "-")
             return new_student
 
-    # def add_student_to_block_list(self, full_name, student_id, date_blocked, reason):
-    #     row_num = len(self.blocked_list.col_values(1)) + 1
-    #     self.blocked_list.update_cell(row_num, 1, full_name)
-    #     self.blocked_list.update_cell(row_num, 2, student_id)
-    #     self.blocked_list.update_cell(row_num, 3, date_blocked)
-    #     self.blocked_list.update_cell(row_num, 4, reason)
-    #
+    def get_blocked_student_ids(self):
+        sql = f"SELECT student_id FROM block_list"
+        self.cursor.execute(sql)
+        output = [x[0] for x in self.cursor.fetchall()]
+        return output
+
+    def get_blocked_info(self, student_id):
+        sql = f"SELECT * FROM block_list WHERE student_id={student_id}"
+        self.cursor.execute(sql)
+        return self.cursor.fetchone()
+
+    def add_student_to_block_list(self, student_id, proper_name, the_date):
+        blocked_ids = self.get_blocked_student_ids()
+        if int(student_id) not in blocked_ids:
+            sql_2 = f"INSERT INTO block_list (student_id, student_name, blocked_date) " \
+                    f"VALUES({student_id}, '{proper_name}', '{the_date}')"
+            self.cursor.execute(sql_2)
+            self.database.commit()
+
+    def remove_student_from_block_list(self, student_id):
+        sql = f"DELETE FROM block_list WHERE student_id={student_id}"
+        self.cursor.execute(sql)
+        self.database.commit()
+
+    def get_today_booking_ids(self):
+        sql = f"SELECT booking_id FROM today_bookings"
+        self.cursor.execute(sql)
+        output = [x[0] for x in self.cursor.fetchall()]
+        return output
+
+    def get_all_today_bookings(self):
+        sql = f"SELECT * FROM today_bookings"
+        self.cursor.execute(sql)
+        return self.cursor.fetchall()
+
+    def set_today_bookings(self, bookings_list):
+        for booking in bookings_list:
+            booking_id = booking.__getattribute__("id")
+            studio_name = booking.__getattribute__("res_name")
+            booking_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
+            booking_day = booking_time.date()
+            student_name = booking.__getattribute__("full_name")
+
+            if booking_day == datetime.datetime.today().date():
+                if booking_id not in self.get_today_booking_ids():
+                    sql_1 = f"INSERT INTO today_bookings (booking_id, studio_name, booking_datetime, student_name) " \
+                          f"VALUES ({booking_id}, '{studio_name}', '{booking_time.isoformat()}', '{student_name}')"
+                    self.cursor.execute(sql_1)
+                    self.database.commit()
+            else:
+                if booking_id in self.get_today_booking_ids():
+                    sql_2 = f"DELETE FROM today_bookings WHERE booking_id={booking_id}"
+                    self.cursor.execute(sql_2)
+                    self.database.commit()
+
+    def get_booking_status_by_booking_id(self, booking_id):
+        sql = f"SELECT status FROM today_bookings WHERE booking_id={booking_id}"
+        self.cursor.execute(sql)
+        return self.cursor.fetchone()[0]
+
+    def set_booking_status_by_booking_id(self, booking_id, new_status):
+        sql = f"UPDATE today_bookings SET status='{new_status}' WHERE booking_id={booking_id}"
+        self.cursor.execute(sql)
+        self.database.commit()
+
+
+
+
+
     # def log_to_log_book(self, student_object, the_log):
     #     student_name = student_object.get_full_name()
     #     student_id = student_object.get_student_id()
@@ -184,6 +260,9 @@ class SuperSaasController:
         self.setup_student_holder()
         self.setup_employee_list()
         self.set_all_bookings()
+
+    def get_database(self):
+        return self._database
 
     def set_app(self, app):
         self._app = app
@@ -264,6 +343,7 @@ class SuperSaasController:
 
     def get_bookings_for_today(self):
         day_bookings = self._client.appointments.range(self._schedule_id, True, 100)
+        self._database.set_today_bookings(day_bookings)
         return day_bookings
 
     def get_all_users(self):
@@ -297,6 +377,20 @@ class SuperSaasController:
             return False
         return True
 
+    def is_student_blocked(self, student_id):
+        return int(student_id) in self._database.get_blocked_student_ids()
+
+    def check_blocked_status(self, student_id):
+        the_student_object = self._student_holder.get_student_by_student_id(student_id)
+        student_name = the_student_object.get_full_name()
+        blocked_data = self._database.get_blocked_info(student_id)
+        today_date = datetime.datetime.today().date()
+        date_diff = today_date - blocked_data[2]
+        if date_diff.days > 7:
+            log = f"Removed {student_name} from block list."
+            self._app.print_output(log)
+            self._database.remove_student_from_block_list(student_id)
+
     def go_through_all_users(self):
         self.setup_student_holder()
         for user in self._all_users:
@@ -322,38 +416,41 @@ class SuperSaasController:
 
             # Get student object from ID, and then compare that info with Supersaas info
             the_student_object = self._student_holder.get_student_by_student_id(student_id)
+
             if the_student_object is not None:
-                correct_full_name = the_student_object.get_full_name()
-                student_icr = the_student_object.get_icr()
-                student_gpa = the_student_object.get_gpa()
-                # If the student is listed as a graduate
-                if the_student_object.get_mod() == "Graduate" and ss_credits != "-":
-                    log = f"{correct_full_name} is a graduate. Credits set to infinity"
-                    self.increase_number_of_changes()
-                    self._app.print_output(log)
-                    # self._google_sheets.log_to_log_book(the_student_object, log)
-                    new_attributes = {
-                        "credit": "-"
-                    }
-                    self._client.users.update(supersaas_id_num, new_attributes)
-                    the_student_object.set_credits("-")
-                if the_student_object.get_mod() != "Graduate":
-                    can_book = student_icr > self._icr_cutoff and student_gpa >= self._gpa_cutoff
-                    # Check if the name of the user is the name in the system
-                    if correct_full_name != ss_full_name:
-                        new_attributes = {
-                            "full_name": correct_full_name
-                        }
-                        self._client.users.update(supersaas_id_num, new_attributes)
-                        log = f"{correct_full_name}'s name has been updated in Student Management." \
-                              f" (OLD NAME: {ss_full_name})"
+                if self.is_student_blocked(student_id):
+                    self.check_blocked_status(student_id)
+                else:
+                    correct_full_name = the_student_object.get_full_name()
+                    student_icr = the_student_object.get_icr()
+                    student_gpa = the_student_object.get_gpa()
+                    # If the student is listed as a graduate
+                    if the_student_object.get_mod() == "Graduate" and ss_credits != "-":
+                        log = f"{correct_full_name} is a graduate. Credits set to infinity"
                         self.increase_number_of_changes()
                         self._app.print_output(log)
                         # self._google_sheets.log_to_log_book(the_student_object, log)
+                        new_attributes = {
+                            "credit": "-"
+                        }
+                        self._client.users.update(supersaas_id_num, new_attributes)
+                        the_student_object.set_credits("-")
+                    if the_student_object.get_mod() != "Graduate":
+                        can_book = student_icr > self._icr_cutoff and student_gpa >= self._gpa_cutoff
+                        # Check if the name of the user is the name in the system
+                        if correct_full_name != ss_full_name:
+                            new_attributes = {
+                                "full_name": correct_full_name
+                            }
+                            self._client.users.update(supersaas_id_num, new_attributes)
+                            log = f"{correct_full_name}'s name has been updated in Student Management." \
+                                  f" (OLD NAME: {ss_full_name})"
+                            self.increase_number_of_changes()
+                            self._app.print_output(log)
+                            # self._google_sheets.log_to_log_book(the_student_object, log)
 
-                    # Check if user's credits need to change based on if they can book or not.
-                    if ss_credits != "-":
-                        if can_book:
+                        # Check if user's credits need to change based on if they can book or not.
+                        if ss_credits != "-" and can_book:
                             log = f"{correct_full_name} is now able to book. Credits updated to infinity"
                             self.increase_number_of_changes()
                             self._app.print_output(log)
@@ -363,8 +460,7 @@ class SuperSaasController:
                             }
                             self._client.users.update(supersaas_id_num, new_attributes)
                             the_student_object.set_credits("-")
-                    if ss_credits != "0":
-                        if not can_book:
+                        if ss_credits != "0" and not can_book:
                             if student_icr < self._icr_cutoff:
                                 log = f"{correct_full_name} is now below the {self._icr_cutoff}% " \
                                       f"ICR cutoff. Credits have been set to 0"
@@ -401,13 +497,13 @@ class SuperSaasController:
             mod = booking.__getattribute__("field_1_r")
             booking_id = booking.__getattribute__("id")
             student_id = booking.__getattribute__("created_by").split(".")[0]
-            student_object = self._student_holder.get_student_by_student_id(student_id)
+            the_student_object = self._student_holder.get_student_by_student_id(student_id)
             booking_day = datetime.datetime.fromisoformat(booking.__getattribute__("start")).strftime("%A")
             # If student object exists
-            if student_object is not None:
-                correct_mod = student_object.get_mod()
-                correct_name = student_object.get_full_name()
-                correct_student_id = student_object.get_student_id()
+            if the_student_object is not None:
+                correct_mod = the_student_object.get_mod()
+                correct_name = the_student_object.get_full_name()
+                correct_student_id = the_student_object.get_student_id()
 
                 # Checks to see if student is allowed to make the booking. Only displays warning message.
                 if not self.booking_is_valid(student_id, booked_room):
@@ -415,11 +511,17 @@ class SuperSaasController:
                     log = f"***BOOKING NOT ALLOWED***: {correct_name} in {correct_mod} booked the {booked_room} " \
                           f"on {booking_time.strftime('%A %m/%d at %H:%M')}"
                     self._app.print_output(log)
+                    self.remove_booking_by_booking_id(booking_id)
+                    allowed_mod = self._database.get_mod_from_studio_name(booked_room)
+                    the_emailer_gmail.send_not_allowed_mod_booking(the_student_object, booking, allowed_mod)
+
                 # Checks to see if graduate is only booking on a Friday. Only displays warning message.
                 if correct_mod == "Graduate" and booking_day != "Friday":
                     log = f"***BOOKING NOT ALLOWED***: {correct_name} who is a {correct_mod} " \
-                          f"is only allowed to book on Friday"
+                          f"is only allowed to book on Friday. Booking Deleted."
                     self._app.print_output(log)
+                    self.remove_booking_by_booking_id(booking_id)
+                    the_emailer_gmail.send_not_allowed_graduate_booking(the_student_object, booking)
 
                 # Runs when the name of the booking doesn't match the name in the system
                 if correct_name != student_name:
@@ -433,7 +535,7 @@ class SuperSaasController:
                           f"{booking_time.strftime('%A %m/%d')}. (OLD NAME: {student_name}) "
                     self.increase_number_of_changes()
                     self._app.print_output(log)
-                    # self._google_sheets.log_to_log_book(student_object, log)
+                    # self._google_sheets.log_to_log_book(the_student_object, log)
 
                 # Runs when the mod of the booking doesn't match the mod in the system
                 if correct_mod != mod:
@@ -441,28 +543,30 @@ class SuperSaasController:
                         "field_1_r": correct_mod,
                         "name": correct_student_id + ".us@saeinstitute.edu"
                     }
-                    try:
-                        self._client.appointments.update(self._schedule_id, booking_id, attributes)
-                        booking_time = datetime.datetime.fromisoformat(booking_start_time)
-                        log = f"{correct_name}'s Mod has been updated for {booked_room} booking for " \
-                              f"{booking_time.strftime('%A %m/%d')}"
-                        self.increase_number_of_changes()
-                        self._app.print_output(log)
-                        # self._google_sheets.log_to_log_book(student_object, log)
-                    except SuperSaaS.Error as error:
-                        log = f"There was an error updating {correct_name}'s booking."
-                        self._app.print_output(error)
-                        self._app.print_output(log)
+                    self._client.appointments.update(self._schedule_id, booking_id, attributes)
+                    booking_time = datetime.datetime.fromisoformat(booking_start_time)
+                    log = f"{correct_name}'s Mod has been updated for {booked_room} booking for " \
+                          f"{booking_time.strftime('%A %m/%d')}"
+                    self.increase_number_of_changes()
+                    self._app.print_output(log)
+                    # self._google_sheets.log_to_log_book(the_student_object, log)
 
     def get_list_of_bookings_from_agenda(self, supersaas_id):
-        output = self._client.appointments.agenda(self._schedule_id, supersaas_id)
+        output = []
+        data = self._client.appointments.agenda(self._schedule_id, supersaas_id)
+        today_date = datetime.datetime.today().date()
+        for booking in data:
+            the_booking_date = datetime.datetime.fromisoformat(booking.__getattribute__("start")).date()
+            if the_booking_date > today_date:
+                output.append(booking)
         return output
+
+    def remove_booking_by_booking_id(self, booking_id):
+        self._client.appointments.delete(self._schedule_id, booking_id)
 
     def remove_bookings_from_list(self, list_of_bookings):
         for booking in list_of_bookings:
             appointment_id = booking.__getattribute__("id")
-            student_id = booking.__getattribute__("created_by").split(".")[0]
-            student_object = self._student_holder.get_student_by_student_id(student_id)
             booked_start_time = booking.__getattribute__("start")
             student_name = booking.__getattribute__("full_name")
             studio_name = booking.__getattribute__("res_name")
@@ -474,16 +578,17 @@ class SuperSaasController:
                 # self._google_sheets.log_to_log_book(student_object, log)
                 self._client.appointments.delete(self._schedule_id, appointment_id)
 
-    def block_student(self, student_id, supersaas_id, reason):
+    def block_student(self, student_id, supersaas_id, booking):
         the_date = datetime.datetime.today().date().isoformat()
-        student_name = self._student_holder.get_student_by_student_id(student_id).get_full_name()
-        student_object = self._student_holder.get_student_by_student_id(student_id)
+        # student_name = self._student_holder.get_student_by_student_id(student_id).get_full_name()
+        the_student_object = self._student_holder.get_student_by_student_id(student_id)
+
+        self._database.add_student_to_block_list(student_id, the_student_object.get_proper_name(), the_date)
 
         # Log the info
-        # self._google_sheets.add_student_to_block_list(student_name, student_id, the_date, reason)
-        log = f"Blocked {student_name} for {reason}"
+        log = f"Blocked {the_student_object.get_full_name()} for missed {booking.__getattribute__('res_name')} booking."
         self._app.print_output(log)
-        # self._google_sheets.log_to_log_book(student_object, log)
+        # self._google_sheets.log_to_log_book(the_student_object, log)
 
         # Update credits to 0
         new_attributes = {"credit": "0"}
@@ -492,7 +597,9 @@ class SuperSaasController:
         # Get Agenda and cancel those bookings
         future_bookings = self.get_list_of_bookings_from_agenda(supersaas_id)
         self.remove_bookings_from_list(future_bookings)
-        the_emailer_gmail.send_missed_booking_email("a.marek@sae.edu")
+
+        # Send Email to student
+        the_emailer_gmail.send_missed_booking_email(the_student_object, booking)
 
     def get_number_of_current_users(self):
         self.setup_student_holder()
