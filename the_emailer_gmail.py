@@ -1,5 +1,6 @@
 import os.path
 import base64
+import datetime
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -36,9 +37,41 @@ def send_email(to_email, the_subject, the_message):
     service.users().messages().send(userId="me", body=create_message).execute()
 
 
-def send_missed_booking_email(to_email):
-    print("Send Email to " + to_email)
-    with open("Email Templates/missed_booking.txt", "r") as the_file:
-        new_message = the_file.read() % ("Anton", "SSL", "8/26")
-    send_email(to_email, "Missed Booking", new_message)
+def send_missed_booking_email(student_object, booking_info):
+    student_name = student_object.get_first_name()
+    student_email = "madhead324@gmail.com"
+    booked_room = booking_info.__getattribute__("res_name")
+    booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(
+        "%m/%d at %I:%M %p")
 
+    the_subject = f"Missed {booked_room} Booking - {booking_start_time}"
+    with open("Email Templates/missed_booking.txt", "r") as the_file:
+        new_message = the_file.read() % (student_name, booked_room, booking_start_time)
+    send_email(student_email, the_subject, new_message)
+
+
+def send_not_allowed_graduate_booking(student_object, booking_info):
+    student_name = student_object.get_first_name()
+    student_email = "madhead324@gmail.com"
+    booked_room = booking_info.__getattribute__("res_name")
+    booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(
+        "%m/%d at %I:%M %p")
+
+    the_subject = f"Deleted {booked_room} Booking - {booking_start_time}"
+    with open("Email Templates/not_allowed_graduate_booking.txt", "r") as the_file:
+        new_message = the_file.read() % (student_name, booked_room, booking_start_time)
+    send_email(student_email, the_subject, new_message)
+
+
+def send_not_allowed_mod_booking(student_object, booking_info, allowed_mod):
+    student_name = student_object.get_first_name()
+    student_email = "j.naeder324@gmail.com"
+    student_mod = student_object.get_mod()
+    booked_room = booking_info.__getattribute__("res_name")
+    booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(
+        "%m/%d at %I:%M %p")
+
+    the_subject = f"Deleted {booked_room} Booking - {booking_start_time}"
+    with open("Email Templates/not_allowed_mod_booking.txt", "r") as the_file:
+        new_message = the_file.read() % (student_name, booked_room, booking_start_time, student_mod, booked_room, allowed_mod)
+    send_email(student_email, the_subject, new_message)

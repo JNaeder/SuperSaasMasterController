@@ -1,0 +1,9 @@
+Dear %s,
+
+Your %s booking for %s has been removed because you are in %s.
+
+You are not allowed to book the %s until you are in Mod %s.
+
+Let us know if you have any questions.
+
+Thank you.
