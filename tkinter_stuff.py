@@ -1,6 +1,6 @@
 import time
 import datetime
-import threading
+# import threading
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
@@ -16,8 +16,6 @@ class App(tk.Tk):
         super().__init__()
         self.config(background="#292929")
         self.state("zoomed")
-        # Value Variables
-        self.output_value = tk.StringVar()
         # Outside Objects
         self.supersaas_controller = sscontrol
 
@@ -44,18 +42,8 @@ class App(tk.Tk):
 
         self.print_output("Welcome to SAE NYC Booking Manager.")
 
-        new_thread = threading.Thread(target=self.check_everything, daemon=True)
-        new_thread.start()
-
     def print_output(self, output_text):
         self.left_side_frame.output_screen.print_output(output_text)
-
-    def check_everything(self):
-        while True:
-            self.supersaas_controller.get_all_info()
-            self.supersaas_controller.go_through_all_users()
-            self.supersaas_controller.go_through_all_bookings()
-            time.sleep(5)
 
 
 class StyleClass(ttk.Style):
@@ -106,6 +94,8 @@ class TitleFrame(ttk.Frame):
 
         button_frame = ttk.Frame(self)
 
+        refresh_icon = ttk.Button(button_frame, image=refresh_icon_image,
+                                  command=self.check_everything, style="Title.TButton")
         settings_icon = ttk.Button(button_frame, image=settings_icon_image,
                                    command=self.open_settings_page, style="Title.TButton")
         web_icon = ttk.Button(button_frame, image=web_icon_image,
@@ -126,11 +116,20 @@ class TitleFrame(ttk.Frame):
 
         button_frame.grid(row=0, column=3, sticky="ew")
 
+        refresh_icon.grid(row=0, column=0, padx=5)
         settings_icon.grid(row=0, column=1, padx=5)
         web_icon.grid(row=0, column=2, padx=5)
         teacher_icon.grid(row=0, column=3, padx=5)
 
         seperator.grid(row=1, column=0, columnspan=5, sticky="ew")
+
+    def check_everything(self):
+        start_time = time.perf_counter()
+        self.controller.supersaas_controller.get_all_info()
+        self.controller.supersaas_controller.go_through_all_users()
+        self.controller.supersaas_controller.go_through_all_bookings()
+        end_time = round(time.perf_counter() - start_time, 2)
+        self.controller.print_output(f"Refreshed in {end_time} seconds")
 
     def open_settings_page(self):
         settings_page = SettingsScreen(self.controller)

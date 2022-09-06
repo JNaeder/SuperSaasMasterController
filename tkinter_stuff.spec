@@ -8,7 +8,7 @@ a = Analysis(
     ['tkinter_stuff.py'],
     pathex=[],
     binaries=[],
-    datas=[('data.json', '.'), ('imgs', './imgs')],
+    datas=[('data.json', '.'), ('imgs', './imgs'), ('Email Templates', './Email Templates')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

@@ -39,7 +39,7 @@ def send_email(to_email, the_subject, the_message):
 
 def send_missed_booking_email(student_object, booking_info):
     student_name = student_object.get_first_name()
-    student_email = "madhead324@gmail.com"
+    student_email = student_object.get_student_id() + ".us@saeinstitute.edu"
     booked_room = booking_info.__getattribute__("res_name")
     booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(
         "%m/%d at %I:%M %p")
@@ -52,7 +52,7 @@ def send_missed_booking_email(student_object, booking_info):
 
 def send_not_allowed_graduate_booking(student_object, booking_info):
     student_name = student_object.get_first_name()
-    student_email = "madhead324@gmail.com"
+    student_email = student_object.get_student_id() + ".us@saeinstitute.edu"
     booked_room = booking_info.__getattribute__("res_name")
     booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(
         "%m/%d at %I:%M %p")
@@ -65,7 +65,7 @@ def send_not_allowed_graduate_booking(student_object, booking_info):
 
 def send_not_allowed_mod_booking(student_object, booking_info, allowed_mod):
     student_name = student_object.get_first_name()
-    student_email = "j.naeder324@gmail.com"
+    student_email = student_object.get_student_id() + ".us@saeinstitute.edu"
     student_mod = student_object.get_mod()
     booked_room = booking_info.__getattribute__("res_name")
     booking_start_time = datetime.datetime.fromisoformat(booking_info.__getattribute__("start")).strftime(

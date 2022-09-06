@@ -1,5 +1,6 @@
 from SuperSaaS import Client, Configuration
 import the_emailer_gmail
+from mysql.connector.locales.eng import client_error
 import mysql.connector
 from mysql.connector.errors import *
 # import gspread
@@ -102,10 +103,11 @@ class StudentObjectHolder:
 class DatabaseInfo:
     def __init__(self):
         self.database = mysql.connector.connect(
-            host="192.168.0.192",
-            user="johnny",
-            password="password",
-            database="test_database"
+            host="192.168.133.4",
+            port="3306",
+            user="nytech",
+            password="Jenny#867",
+            database="SAE_NYC"
         )
         self.cursor = self.database.cursor()
 
@@ -196,12 +198,13 @@ class DatabaseInfo:
 
     def set_today_bookings(self, bookings_list):
         for booking in bookings_list:
+            booking_email_ending = booking.__getattribute__("created_by").split(" ")[0].split("@")[1]
             booking_id = booking.__getattribute__("id")
             studio_name = booking.__getattribute__("res_name")
             booking_time = datetime.datetime.fromisoformat(booking.__getattribute__("start"))
             student_name = booking.__getattribute__("full_name")
 
-            if booking_id not in self.get_today_booking_ids():
+            if booking_id not in self.get_today_booking_ids() and booking_email_ending != "sae.edu":
                 sql_1 = f"INSERT INTO today_bookings (booking_id, studio_name, booking_datetime, student_name) " \
                         f"VALUES ({booking_id}, '{studio_name}', '{booking_time.isoformat()}', '{student_name}')"
                 self.cursor.execute(sql_1)
